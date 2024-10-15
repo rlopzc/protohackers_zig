@@ -1,27 +1,29 @@
 const std = @import("std");
 const log = std.log;
 const net = std.net;
+const process = std.process;
+
+const arg_error_msg = "missing argument. specify test to run. i.e. 00, 01, ...";
 
 const smoke_test = @import("01_smoke_test.zig");
-const arg_error_msg = "missing argument. specify test to run. i.e. 00, 01, ...";
 
 pub fn main() !void {
     var gpa = std.heap.GeneralPurposeAllocator(.{}){};
     defer _ = gpa.deinit();
 
-    const args = try std.process.argsAlloc(gpa.allocator());
-    defer std.process.argsFree(gpa.allocator(), args);
+    const args = try process.argsAlloc(gpa.allocator());
+    defer process.argsFree(gpa.allocator(), args);
 
     std.debug.print("There are {d} args:\n {s}\n", .{ args.len, args });
 
     if (args.len == 1) {
         log.err(arg_error_msg, .{});
-        std.process.exit(1);
+        process.exit(1);
     }
 
     const option = std.fmt.parseInt(u8, args[1], 10) catch {
         log.err(arg_error_msg, .{});
-        std.process.exit(1);
+        process.exit(1);
     };
 
     switch (option) {
