@@ -2,43 +2,26 @@ const std = @import("std");
 const log = std.log;
 const net = std.net;
 
+const smoke_test = @import("01_smoke_test.zig");
+
 pub fn main() !void {
-    const address = try net.Address.resolveIp("127.0.0.1", 3000);
+    var gpa = std.heap.GeneralPurposeAllocator(.{}){};
+    defer _ = gpa.deinit();
 
-    var server = try address.listen(.{});
-    defer server.deinit();
-    log.info("Server listening on port {d}", .{address.getPort()});
+    const args = try std.process.argsAlloc(gpa.allocator());
+    defer std.process.argsFree(gpa.allocator(), args);
 
-    while (true) {
-        var socket = try server.accept();
-        const thread = try std.Thread.spawn(.{}, socket_loop, .{&socket});
-        thread.detach();
+    std.debug.print("There are {d} args:\n {s}\n", .{ args.len, args });
+
+    const option = try std.fmt.parseInt(u8, args[1], 10);
+
+    switch (option) {
+        0 => {
+            std.debug.print("Runnin 0 - Smoke Test", .{});
+            try smoke_test.main();
+        },
+        else => {
+            log.err("specify the test to run. i.e. 0, 01, ...", .{});
+        },
     }
-}
-
-fn socket_loop(socket: *net.Server.Connection) !void {
-    log.info("Client {} connected", .{socket.address});
-    defer socket.stream.close();
-
-    var buf: [1024]u8 = undefined;
-    while (true) {
-        const bytes_read = try socket.stream.read(&buf);
-        std.debug.print("bytes_read={d} buffer={s}\n", .{ bytes_read, buf });
-
-        if (bytes_read == 0) {
-            break;
-        }
-
-        try socket.stream.writeAll(&buf);
-        // TODO: close the conn properly
-    }
-
-    log.info("Client {} disconnected", .{socket.address});
-}
-
-test "simple test" {
-    var list = std.ArrayList(i32).init(std.testing.allocator);
-    defer list.deinit(); // try commenting this out and see if zig detects the memory leak!
-    try list.append(42);
-    try std.testing.expectEqual(@as(i32, 42), list.pop());
 }
