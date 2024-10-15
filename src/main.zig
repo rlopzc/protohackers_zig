@@ -3,6 +3,7 @@ const log = std.log;
 const net = std.net;
 
 const smoke_test = @import("01_smoke_test.zig");
+const arg_error_msg = "missing argument. specify test to run. i.e. 00, 01, ...";
 
 pub fn main() !void {
     var gpa = std.heap.GeneralPurposeAllocator(.{}){};
@@ -13,7 +14,15 @@ pub fn main() !void {
 
     std.debug.print("There are {d} args:\n {s}\n", .{ args.len, args });
 
-    const option = try std.fmt.parseInt(u8, args[1], 10);
+    if (args.len == 1) {
+        log.err(arg_error_msg, .{});
+        std.process.exit(1);
+    }
+
+    const option = std.fmt.parseInt(u8, args[1], 10) catch {
+        log.err(arg_error_msg, .{});
+        std.process.exit(1);
+    };
 
     switch (option) {
         0 => {
@@ -21,7 +30,7 @@ pub fn main() !void {
             try smoke_test.main();
         },
         else => {
-            log.err("specify the test to run. i.e. 0, 01, ...", .{});
+            log.err("test not found, try: 00, 01, ...", .{});
         },
     }
 }
