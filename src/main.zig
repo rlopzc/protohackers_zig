@@ -26,7 +26,7 @@ pub fn main() !void {
 
     switch (option) {
         0 => {
-            std.debug.print("Runnin 0 - Smoke Test", .{});
+            std.debug.print("Running 0 - Smoke Test", .{});
             try smoke_test.main();
         },
         else => {
