@@ -9,18 +9,31 @@ pub fn main() !void {
     defer server.deinit();
     log.info("Server listening on port {d}", .{address.getPort()});
 
-    var buf: [1024]u8 = undefined;
     while (true) {
         var socket = try server.accept();
-        defer socket.stream.close();
+        const thread = try std.Thread.spawn(.{}, socket_loop, .{&socket});
+        thread.detach();
+    }
+}
 
-        log.info("Client {any} connected", .{socket.address});
+fn socket_loop(socket: *net.Server.Connection) !void {
+    log.info("Client {} connected", .{socket.address});
+    defer socket.stream.close();
 
+    var buf: [1024]u8 = undefined;
+    while (true) {
         const bytes_read = try socket.stream.read(&buf);
         std.debug.print("bytes_read={d} buffer={s}\n", .{ bytes_read, buf });
 
+        if (bytes_read == 0) {
+            break;
+        }
+
         try socket.stream.writeAll(&buf);
+        // TODO: close the conn properly
     }
+
+    log.info("Client {} disconnected", .{socket.address});
 }
 
 test "simple test" {
