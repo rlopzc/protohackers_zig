@@ -23,7 +23,7 @@ fn socket_loop(socket: net.Server.Connection) !void {
     while (true) {
         const bytes_read = socket.stream.read(&buf) catch break;
         if (bytes_read == 0) break;
-        std.debug.print("bytes_read={d} buffer={s}\n", .{ bytes_read, buf });
+        log.debug("bytes_read={d} buffer={s}\n", .{ bytes_read, buf });
 
         try socket.stream.writeAll(&buf);
     }

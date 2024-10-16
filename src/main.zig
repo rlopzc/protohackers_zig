@@ -14,7 +14,7 @@ pub fn main() !void {
     const args = try process.argsAlloc(gpa.allocator());
     defer process.argsFree(gpa.allocator(), args);
 
-    std.debug.print("There are {d} args:\n {s}\n", .{ args.len, args });
+    std.log.debug("There are {d} args:\n {s}\n", .{ args.len, args });
 
     if (args.len == 1) {
         log.err(arg_error_msg, .{});
@@ -28,7 +28,7 @@ pub fn main() !void {
 
     switch (option) {
         0 => {
-            std.debug.print("Running 0 - Smoke Test", .{});
+            std.log.debug("Running 0 - Smoke Test", .{});
             try smoke_test.main();
         },
         else => {
