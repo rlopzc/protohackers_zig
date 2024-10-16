@@ -9,15 +9,11 @@ WORKDIR /app
 COPY src src
 COPY build.zig build.zig.zon ./
 
-RUN echo $(ls -1 ./)
-
-RUN zig build --release=fast
+RUN zig build --release=safe
 
 FROM ${IMAGE}
 WORKDIR /app
 
 COPY --from=builder /app/zig-out ./
-
-RUN echo $(ls -1 ./)
 
 ENTRYPOINT ["/app/bin/protohackers_zig"]
