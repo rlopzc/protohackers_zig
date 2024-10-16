@@ -4,6 +4,7 @@ zig-out
 
 # Docker
 Dockerfile
+.dockerignore
 
 # Git
 .git
