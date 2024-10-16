@@ -9,7 +9,7 @@ WORKDIR /app
 COPY src src
 COPY build.zig build.zig.zon ./
 
-RUN zig build --release=safe
+RUN zig build -Doptimize=ReleaseSafe
 
 FROM ${IMAGE}
 WORKDIR /app
