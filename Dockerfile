@@ -11,9 +11,8 @@ COPY build.zig build.zig.zon ./
 
 RUN zig build -Doptimize=ReleaseSafe
 
-FROM ${IMAGE}
-WORKDIR /app
+FROM scratch
 
-COPY --from=builder /app/zig-out ./
+COPY --from=builder /app/zig-out /app
 
 ENTRYPOINT ["/app/bin/protohackers_zig"]
