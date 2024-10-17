@@ -22,10 +22,12 @@ fn socket_loop(socket: net.Server.Connection) !void {
     var buf: [1024]u8 = undefined;
     while (true) {
         const bytes_read = socket.stream.read(&buf) catch break;
+
         if (bytes_read == 0) break;
-        log.debug("bytes_read={d} buffer={s}\n", .{ bytes_read, buf });
+        log.debug("Client {} send bytes={d} buffer={s}", .{ socket.address, bytes_read, buf });
 
         try socket.stream.writeAll(&buf);
+        buf = undefined;
     }
 
     log.info("Client {} disconnected", .{socket.address});
