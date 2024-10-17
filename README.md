@@ -30,7 +30,7 @@ docker buildx build --platform linux/arm64,linux/amd64 -t ghcr.io/rlopzc/protoha
 ## Running the image in any cloud provider
 
 1. Create a server in a cloud provider (I used Hetzner)
-1. Pull the image. You can either push the latest, which should contain most solutions, or a specific tag with a
+1. Pull the image. You can either pull the latest, which should contain most solutions, or a specific tag with a
    solution.
    ```sh
    docker pull ghcr.io/rlopzc/protohackers_zig:0_smoke
