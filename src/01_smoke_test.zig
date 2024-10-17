@@ -19,13 +19,13 @@ pub fn main() !void {
 }
 
 fn socket_loop(socket: net.Server.Connection) !void {
-    log.info("jlient {} connected", .{socket.address});
+    log.info("client {} connected", .{socket.address});
     defer socket.stream.close();
 
     var buf: [1024]u8 = undefined;
     while (true) {
         const bytes_read = socket.stream.read(&buf) catch |err| {
-            log.err("client {} err while reading from socket error={}", .{ socket.address, err });
+            log.err("client {} error while reading from socket error={}", .{ socket.address, err });
             break;
         };
         if (bytes_read == 0) break;
@@ -37,11 +37,11 @@ fn socket_loop(socket: net.Server.Connection) !void {
         });
 
         _ = socket.stream.writeAll(buf[0..bytes_read]) catch |err| {
-            log.err("client {} err while writing to socket error={}", .{ socket.address, err });
+            log.err("client {} error while writing to socket error={}", .{ socket.address, err });
             break;
         };
         buf = undefined;
     }
 
-    log.info("Client {} disconnected", .{socket.address});
+    log.info("client {} disconnected", .{socket.address});
 }
