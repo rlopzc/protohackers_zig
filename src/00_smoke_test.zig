@@ -1,5 +1,5 @@
 const std = @import("std");
-const log = std.log;
+const log = std.log.scoped(.smoke_test);
 const net = std.net;
 
 const TcpServer = @import("tcp_server.zig").TcpServer;
@@ -19,6 +19,6 @@ pub fn main() !void {
     }
 }
 
-fn callback(msg: []const u8) []const u8 {
-    return msg;
+fn callback(msg: []const u8, response_writer: anytype) void {
+    _ = response_writer.write(msg) catch unreachable;
 }
