@@ -19,6 +19,7 @@ pub fn main() !void {
     }
 }
 
-fn callback(msg: []const u8, response_writer: anytype) void {
+fn callback(msg: []const u8, response_writer: anytype) ?Client.Action {
     _ = response_writer.write(msg) catch unreachable;
+    return null;
 }

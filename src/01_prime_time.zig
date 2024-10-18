@@ -32,7 +32,7 @@ const Response = struct {
     prime: bool,
 };
 
-fn callback(msg: []const u8, response_writer: anytype) void {
+fn callback(msg: []const u8, response_writer: anytype) ?Client.Action {
     var gpa = std.heap.GeneralPurposeAllocator(.{}){};
     defer _ = gpa.deinit();
 
@@ -42,15 +42,14 @@ fn callback(msg: []const u8, response_writer: anytype) void {
 
         if (!std.mem.eql(u8, parsed_json.value.method, "isPrime")) {
             _ = response_writer.write(malformed_request) catch unreachable;
-            return;
+            return null;
         }
         request = parsed_json.value;
     } else |err| {
         log.info("parsing json error={}", .{err});
         _ = response_writer.write(malformed_request) catch unreachable;
-        // TODO: Whenever you receive a malformed request, send back a single malformed
-        // response, and disconnect the client.
-        return;
+
+        return Client.Action.close_conn;
     }
 
     const prime = is_prime(request.number);
@@ -62,6 +61,7 @@ fn callback(msg: []const u8, response_writer: anytype) void {
     // https://www.openmymind.net/Writing-Json-To-A-Custom-Output-in-Zig/
     json.stringify(response, .{}, response_writer) catch unreachable;
     _ = response_writer.write("\n") catch unreachable;
+    return null;
 }
 
 fn is_prime(number: usize) bool {

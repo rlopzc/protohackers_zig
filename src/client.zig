@@ -2,10 +2,13 @@ const std = @import("std");
 const log = std.log.scoped(.client);
 const net = std.net;
 
-const callback = fn (msg: []const u8, response_writer: anytype) void;
-
 pub const Client = struct {
     socket: net.Server.Connection,
+
+    const callback = fn (msg: []const u8, response_writer: anytype) ?Action;
+    pub const Action = enum {
+        close_conn,
+    };
 
     pub fn run(self: Client, callback_fn: callback) !void {
         log.info("client {} connected", .{self.socket.address});
@@ -31,7 +34,7 @@ pub const Client = struct {
                 buf[0..(bytes_read - 1)],
             });
 
-            callback_fn(buf[0..bytes_read], response_buf.writer());
+            const action = callback_fn(buf[0..bytes_read], response_buf.writer());
 
             log.info("sending {}", .{std.zig.fmtEscapes(response_buf.items)});
 
@@ -41,6 +44,8 @@ pub const Client = struct {
             };
             buf = undefined;
             response_buf.clearRetainingCapacity();
+
+            if (action == .close_conn) break;
         }
 
         log.info("client {} disconnected", .{self.socket.address});
