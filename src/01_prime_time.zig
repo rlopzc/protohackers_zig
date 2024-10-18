@@ -32,6 +32,9 @@ const Response = struct {
     prime: bool,
 };
 
+// TODO: support multiple single jsons in one message
+// TODO: msg could be greater than 1024, use arraylist
+
 fn callback(msg: []const u8, response_writer: anytype) ?Client.Action {
     var gpa = std.heap.GeneralPurposeAllocator(.{}){};
     defer _ = gpa.deinit();
