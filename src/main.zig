@@ -5,7 +5,7 @@ const process = std.process;
 
 const arg_error_msg = "missing argument. specify test to run. i.e. 00, 01, ...";
 
-const smoke_test = @import("01_smoke_test.zig");
+const smoke_test = @import("00_smoke_test.zig");
 
 pub fn main() !void {
     var gpa = std.heap.GeneralPurposeAllocator(.{}){};
@@ -13,8 +13,6 @@ pub fn main() !void {
 
     const args = try process.argsAlloc(gpa.allocator());
     defer process.argsFree(gpa.allocator(), args);
-
-    log.debug("There are {d} args:\n {s}\n", .{ args.len, args });
 
     if (args.len == 1) {
         log.err(arg_error_msg, .{});
