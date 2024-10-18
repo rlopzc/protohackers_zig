@@ -1,5 +1,5 @@
 const std = @import("std");
-const log = std.log;
+const log = std.log.scoped(.tcp_server);
 const net = std.net;
 
 const Client = @import("client.zig").Client;
