@@ -24,7 +24,7 @@ const malformed_request: []const u8 = "{}\n";
 
 const Request = struct {
     method: []const u8,
-    number: usize,
+    number: isize,
 };
 
 const Response = struct {
@@ -64,11 +64,13 @@ fn callback(msg: []const u8, response_writer: anytype) ?Client.Action {
     return null;
 }
 
-fn is_prime(number: usize) bool {
+fn is_prime(number: isize) bool {
+    if (number <= 1) return false;
+
     var prime = true;
-    var i: usize = 2;
+    var i: isize = 2;
     while (i < number) : (i += 1) {
-        if (number % i == 0) {
+        if (@rem(number, i) == 0) {
             prime = false;
             break;
         }
