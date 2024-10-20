@@ -17,28 +17,24 @@ pub const Client = struct {
         var gpa = std.heap.GeneralPurposeAllocator(.{}){};
         defer _ = gpa.deinit();
 
-        var buffer = try std.ArrayList(u8).initCapacity(gpa.allocator(), 1024);
-        defer buffer.deinit();
+        var buffer: [1024]u8 = undefined;
 
         while (true) {
-            defer buffer.clearRetainingCapacity();
-            while (self.socket.stream.reader().readByte()) |byte| {
-                if (byte == '\n') {
-                    try buffer.append('\n');
-                    break;
-                }
-                try buffer.append(byte);
-            } else |err| {
-                log.err("client {} error while reading from socket error={}", .{ self.socket.address, err });
-            }
-            log.info("client {} send bytes={} buffer={s}", .{ self.socket.address, buffer.items.len, buffer.items });
+            defer buffer = undefined;
+            const bytes_read = try self.socket.stream.read(&buffer);
+            if (bytes_read == 0) break;
 
-            if (callback_fn(buffer.items, &self.socket)) |action| switch (action) {
+            log.info("client {} sent bytes={} buffer={}", .{
+                self.socket.address,
+                bytes_read,
+                std.zig.fmtEscapes(buffer[0..bytes_read]),
+            });
+
+            if (callback_fn(buffer[0..bytes_read], &self.socket)) |action| switch (action) {
                 .close_conn => {
                     break;
                 },
             };
-            log.info("sending {}", .{std.zig.fmtEscapes(buffer.items)});
         }
 
         log.info("client {} disconnected", .{self.socket.address});
