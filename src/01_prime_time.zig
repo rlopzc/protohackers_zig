@@ -32,10 +32,7 @@ const Response = struct {
     prime: bool,
 };
 
-// TODO: support multiple single jsons in one message
-// TODO: msg could be greater than 1024, use arraylist
-
-fn callback(msg: []const u8, response_writer: anytype) ?Client.Action {
+fn callback(msg: []const u8, socket: *const net.Server.Connection) ?Client.Action {
     var gpa = std.heap.GeneralPurposeAllocator(.{}){};
     defer _ = gpa.deinit();
 
@@ -44,13 +41,13 @@ fn callback(msg: []const u8, response_writer: anytype) ?Client.Action {
         defer parsed_json.deinit();
 
         if (!std.mem.eql(u8, parsed_json.value.method, "isPrime")) {
-            _ = response_writer.write(malformed_request) catch unreachable;
+            socket.stream.writeAll(malformed_request) catch unreachable;
             return null;
         }
         request = parsed_json.value;
     } else |err| {
         log.info("parsing json error={}", .{err});
-        _ = response_writer.write(malformed_request) catch unreachable;
+        socket.stream.writeAll(malformed_request) catch unreachable;
 
         return Client.Action.close_conn;
     }
@@ -61,9 +58,13 @@ fn callback(msg: []const u8, response_writer: anytype) ?Client.Action {
         .prime = prime,
     };
 
+    var buf = std.ArrayList(u8).init(gpa.allocator());
+    defer buf.deinit();
+
     // https://www.openmymind.net/Writing-Json-To-A-Custom-Output-in-Zig/
-    json.stringify(response, .{}, response_writer) catch unreachable;
-    _ = response_writer.write("\n") catch unreachable;
+    json.stringify(response, .{}, buf.writer()) catch unreachable;
+    buf.append('\n') catch unreachable;
+    socket.stream.writeAll(buf.items) catch unreachable;
     return null;
 }
 
