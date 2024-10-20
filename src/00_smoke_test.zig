@@ -19,7 +19,7 @@ pub fn main() !void {
     }
 }
 
-fn callback(msg: []const u8, response_writer: anytype) ?Client.Action {
-    _ = response_writer.write(msg) catch unreachable;
+fn callback(msg: []const u8, socket: *const net.Server.Connection) ?Client.Action {
+    socket.stream.writeAll(msg) catch unreachable;
     return null;
 }
