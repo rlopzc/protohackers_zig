@@ -5,7 +5,7 @@ const net = std.net;
 pub const Client = struct {
     socket: net.Server.Connection,
 
-    const callback = fn (msg: []const u8, response_writer: anytype) ?Action;
+    const callback = fn (msg: []const u8, socket: *const net.Server.Connection) ?Action;
     pub const Action = enum {
         close_conn,
     };
@@ -17,35 +17,28 @@ pub const Client = struct {
         var gpa = std.heap.GeneralPurposeAllocator(.{}){};
         defer _ = gpa.deinit();
 
-        var buf: [1024]u8 = undefined;
-        var response_buf = std.ArrayList(u8).init(gpa.allocator());
-        defer response_buf.deinit();
+        var buffer = try std.ArrayList(u8).initCapacity(gpa.allocator(), 1024);
+        defer buffer.deinit();
 
         while (true) {
-            const bytes_read = self.socket.stream.read(&buf) catch |err| {
+            defer buffer.clearRetainingCapacity();
+            while (self.socket.stream.reader().readByte()) |byte| {
+                if (byte == '\n') {
+                    try buffer.append('\n');
+                    break;
+                }
+                try buffer.append(byte);
+            } else |err| {
                 log.err("client {} error while reading from socket error={}", .{ self.socket.address, err });
-                break;
+            }
+            log.info("client {} send bytes={} buffer={s}", .{ self.socket.address, buffer.items.len, buffer.items });
+
+            if (callback_fn(buffer.items, &self.socket)) |action| switch (action) {
+                .close_conn => {
+                    break;
+                },
             };
-            if (bytes_read == 0) break;
-
-            log.info("client {} send bytes={d} buffer={s}", .{
-                self.socket.address,
-                bytes_read,
-                buf[0..(bytes_read - 1)],
-            });
-
-            const action = callback_fn(buf[0..bytes_read], response_buf.writer());
-
-            log.info("sending {}", .{std.zig.fmtEscapes(response_buf.items)});
-
-            self.socket.stream.writeAll(response_buf.items) catch |err| {
-                log.err("client {} error while writing to socket error={}", .{ self.socket.address, err });
-                break;
-            };
-            buf = undefined;
-            response_buf.clearRetainingCapacity();
-
-            if (action == .close_conn) break;
+            log.info("sending {}", .{std.zig.fmtEscapes(buffer.items)});
         }
 
         log.info("client {} disconnected", .{self.socket.address});
