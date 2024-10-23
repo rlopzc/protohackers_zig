@@ -31,6 +31,8 @@ fn callback(msg: []const u8, socket: *const net.Server.Connection) ?Client.Actio
 
     dest[msg.len] = '\n';
 
+    log.info("sending {}", .{std.zig.fmtEscapes(dest)});
+
     socket.stream.writeAll(dest) catch unreachable;
     return null;
 }
