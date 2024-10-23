@@ -6,8 +6,12 @@ const json = std.json;
 const TcpServer = @import("tcp_server.zig").TcpServer;
 const Client = @import("client.zig").Client;
 
+var gpa = std.heap.GeneralPurposeAllocator(.{}){};
+const allocator = gpa.allocator();
+
 pub fn main() !void {
-    var server = TcpServer.start(3000) catch std.process.exit(1);
+    defer _ = gpa.deinit();
+    var server = TcpServer.start(allocator, 3000) catch std.process.exit(1);
     defer server.deinit();
 
     while (true) {
@@ -20,11 +24,11 @@ pub fn main() !void {
     }
 }
 
-const malformed_request: []const u8 = "{}\n";
+const malformed_request: []const u8 = "{}";
 
 const Request = struct {
     method: []const u8,
-    number: isize,
+    number: f64,
 };
 
 const Response = struct {
@@ -32,24 +36,26 @@ const Response = struct {
     prime: bool,
 };
 
-fn callback(msg: []const u8, socket: *const net.Server.Connection) ?Client.Action {
-    var gpa = std.heap.GeneralPurposeAllocator(.{}){};
-    defer _ = gpa.deinit();
-
+fn callback(msg: []const u8, client: *const Client) ?Client.Action {
     var request: Request = undefined;
-    if (json.parseFromSlice(Request, gpa.allocator(), msg, .{})) |parsed_json| {
+    if (json.parseFromSlice(
+        Request,
+        gpa.allocator(),
+        msg,
+        .{ .ignore_unknown_fields = true },
+    )) |parsed_json| {
         defer parsed_json.deinit();
 
         if (!std.mem.eql(u8, parsed_json.value.method, "isPrime")) {
-            socket.stream.writeAll(malformed_request) catch unreachable;
+            client.write(malformed_request) catch return .close_conn;
             return null;
         }
         request = parsed_json.value;
     } else |err| {
         log.info("parsing json error={}", .{err});
-        socket.stream.writeAll(malformed_request) catch unreachable;
+        client.write(malformed_request) catch return .close_conn;
 
-        return Client.Action.close_conn;
+        return .close_conn;
     }
 
     const prime = is_prime(request.number);
@@ -63,12 +69,12 @@ fn callback(msg: []const u8, socket: *const net.Server.Connection) ?Client.Actio
 
     // https://www.openmymind.net/Writing-Json-To-A-Custom-Output-in-Zig/
     json.stringify(response, .{}, buf.writer()) catch unreachable;
-    buf.append('\n') catch unreachable;
-    socket.stream.writeAll(buf.items) catch unreachable;
+    client.write(buf.items) catch return .close_conn;
     return null;
 }
 
-fn is_prime(number: isize) bool {
+fn is_prime(float: f64) bool {
+    const number: isize = @intFromFloat(float);
     if (number <= 1) return false;
 
     var prime = true;

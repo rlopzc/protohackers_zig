@@ -2,6 +2,7 @@ const std = @import("std");
 const log = std.log.scoped(.client);
 const net = std.net;
 const mem = std.mem;
+const BufferedReader = std.io.BufferedReader(4096, net.Stream.Reader);
 
 pub const Client = struct {
     allocator: mem.Allocator,
@@ -10,7 +11,7 @@ pub const Client = struct {
 
     const Self = @This();
 
-    const callback = fn (msg: []const u8, socket: *const net.Server.Connection) ?Action;
+    const callback = fn (msg: []const u8, client: *const Self) ?Action;
     pub const Action = enum {
         close_conn,
     };
@@ -19,13 +20,36 @@ pub const Client = struct {
         return .{
             .allocator = allocator,
             .socket = socket,
-            .buffer = try allocator.alloc(u8, 1024),
+            .buffer = try allocator.alloc(u8, 4096),
         };
     }
 
-    fn read(self: Self) !?[]u8 {
-        const value = try self.socket.stream.reader().readUntilDelimiterOrEof(self.buffer, '\n');
-        return value;
+    fn read(self: Self) (error{EndOfStream} || std.posix.ReadError)![]u8 {
+        // var buf_writer = std.io.fixedBufferStream(self.buffer);
+        // try self.socket.stream.reader().streamUntilDelimiter(buf_writer.writer(), '\n', null);
+
+        const bytes_read = try self.socket.stream.read(self.buffer);
+        if (bytes_read == 0) return error.EndOfStream;
+
+        log.info("client={} receive={}", .{ self.socket.address, std.zig.fmtEscapes(self.buffer[0..(bytes_read - 1)]) });
+
+        return self.buffer[0..(bytes_read - 1)];
+    }
+
+    pub fn write(self: Self, msg: []const u8) !void {
+        var dest = try self.allocator.alloc(u8, msg.len + 1);
+        defer self.allocator.free(dest);
+
+        @memcpy(dest[0..msg.len], msg);
+        dest[msg.len] = '\n';
+
+        log.info("client={} sending={}", .{ self.socket.address, std.zig.fmtEscapes(dest) });
+
+        // var buf_writer = std.io.bufferedWriter(self.socket.stream.writer());
+        // var writer = buf_writer.writer();
+
+        _ = try self.socket.stream.write(dest);
+        // try buf_writer.flush();
     }
 
     fn deinit(self: Self) void {
@@ -38,9 +62,15 @@ pub const Client = struct {
         log.info("client {} connected", .{self.socket.address});
 
         while (true) {
-            const value = try self.read() orelse break;
+            const value = self.read() catch |err| switch (err) {
+                error.EndOfStream => break,
+                else => {
+                    log.err("error when reading from stream err={}", .{err});
+                    return err;
+                },
+            };
 
-            if (callback_fn(value, &self.socket)) |action| switch (action) {
+            if (callback_fn(value, &self)) |action| switch (action) {
                 .close_conn => {
                     break;
                 },

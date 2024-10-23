@@ -9,6 +9,7 @@ var gpa = std.heap.GeneralPurposeAllocator(.{}){};
 const allocator = gpa.allocator();
 
 pub fn main() !void {
+    defer _ = gpa.deinit();
     var server = TcpServer.start(allocator, 3000) catch std.process.exit(1);
     defer server.deinit();
 
@@ -22,14 +23,7 @@ pub fn main() !void {
     }
 }
 
-fn callback(msg: []const u8, socket: *const net.Server.Connection) ?Client.Action {
-    var dest = allocator.alloc(u8, msg.len + 1) catch unreachable;
-    defer allocator.free(dest);
-
-    @memcpy(dest[0..msg.len], msg);
-
-    dest[msg.len] = '\n';
-
-    socket.stream.writeAll(dest) catch unreachable;
+fn callback(msg: []const u8, client: *const Client) ?Client.Action {
+    client.write(msg) catch unreachable;
     return null;
 }
