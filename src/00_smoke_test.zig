@@ -5,8 +5,11 @@ const net = std.net;
 const TcpServer = @import("tcp_server.zig").TcpServer;
 const Client = @import("client.zig").Client;
 
+var gpa = std.heap.GeneralPurposeAllocator(.{}){};
+const allocator = gpa.allocator();
+
 pub fn main() !void {
-    var server = TcpServer.start(3000) catch std.process.exit(1);
+    var server = TcpServer.start(allocator, 3000) catch std.process.exit(1);
     defer server.deinit();
 
     while (true) {
@@ -20,6 +23,13 @@ pub fn main() !void {
 }
 
 fn callback(msg: []const u8, socket: *const net.Server.Connection) ?Client.Action {
-    socket.stream.writeAll(msg) catch unreachable;
+    var dest = allocator.alloc(u8, msg.len + 1) catch unreachable;
+    defer allocator.free(dest);
+
+    @memcpy(dest[0..msg.len], msg);
+
+    dest[msg.len] = '\n';
+
+    socket.stream.writeAll(dest) catch unreachable;
     return null;
 }
