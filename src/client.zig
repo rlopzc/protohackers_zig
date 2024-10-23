@@ -19,7 +19,7 @@ pub const Client = struct {
         return .{
             .allocator = allocator,
             .socket = socket,
-            .buffer = try allocator.alloc(u8, 1024),
+            .buffer = try allocator.alloc(u8, 4096),
         };
     }
 
