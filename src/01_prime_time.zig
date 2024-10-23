@@ -6,8 +6,12 @@ const json = std.json;
 const TcpServer = @import("tcp_server.zig").TcpServer;
 const Client = @import("client.zig").Client;
 
+var gpa = std.heap.GeneralPurposeAllocator(.{}){};
+const allocator = gpa.allocator();
+
 pub fn main() !void {
-    var server = TcpServer.start(3000) catch std.process.exit(1);
+    defer _ = gpa.deinit();
+    var server = TcpServer.start(allocator, 3000) catch std.process.exit(1);
     defer server.deinit();
 
     while (true) {
@@ -33,9 +37,6 @@ const Response = struct {
 };
 
 fn callback(msg: []const u8, socket: *const net.Server.Connection) ?Client.Action {
-    var gpa = std.heap.GeneralPurposeAllocator(.{}){};
-    defer _ = gpa.deinit();
-
     var request: Request = undefined;
     if (json.parseFromSlice(Request, gpa.allocator(), msg, .{})) |parsed_json| {
         defer parsed_json.deinit();
