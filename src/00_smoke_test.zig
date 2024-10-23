@@ -9,6 +9,7 @@ var gpa = std.heap.GeneralPurposeAllocator(.{}){};
 const allocator = gpa.allocator();
 
 pub fn main() !void {
+    defer _ = gpa.deinit();
     var server = TcpServer.start(allocator, 3000) catch std.process.exit(1);
     defer server.deinit();
 

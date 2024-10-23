@@ -25,6 +25,7 @@ pub const Client = struct {
 
     fn read(self: Self) !?[]u8 {
         const value = try self.socket.stream.reader().readUntilDelimiterOrEof(self.buffer, '\n');
+        log.info("client={} read={}", .{ self.socket.address, std.zig.fmtEscapes(value orelse "") });
         return value;
     }
 
