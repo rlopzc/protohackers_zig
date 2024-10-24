@@ -28,7 +28,7 @@ pub const Client = struct {
         var reader = buf_reader.reader();
 
         const value = try reader.readUntilDelimiterOrEof(self.buffer, '\n');
-        log.info("client={} read={}", .{ self.socket.address, std.zig.fmtEscapes(value orelse "") });
+        log.info("client={} read={?s}", .{ self.socket.address, value });
         return value;
     }
 
