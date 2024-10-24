@@ -27,15 +27,15 @@ pub const Client = struct {
         var buf_reader = std.io.bufferedReader(self.socket.stream.reader());
         var reader = buf_reader.reader();
 
-        // var buf_writer = std.io.fixedBufferStream(self.buffer);
-        //
-        // try reader.streamUntilDelimiter(buf_writer.writer(), '\n', self.buffer.len);
-        // log.info("client={} reading={s}", .{ self.socket.address, self.buffer });
-        // return buf_writer.getWritten();
-        const value = try reader.readUntilDelimiterOrEof(self.buffer, '\n');
+        var buf_writer = std.io.fixedBufferStream(self.buffer);
 
-        log.info("client={} reading={?s}", .{ self.socket.address, value });
-        return value;
+        try reader.streamUntilDelimiter(buf_writer.writer(), '\n', self.buffer.len);
+        log.info("client={} reading={s}", .{ self.socket.address, self.buffer });
+        return buf_writer.getWritten();
+        // const value = try reader.readUntilDelimiterOrEof(self.buffer, '\n');
+        //
+        // log.info("client={} reading={?s}", .{ self.socket.address, value });
+        // return value;
     }
 
     pub fn write(self: Self, msg: []const u8) !void {
@@ -63,7 +63,7 @@ pub const Client = struct {
         log.info("client {} connected", .{self.socket.address});
 
         while (true) {
-            const value = try self.read() orelse break;
+            const value = self.read() catch break orelse break;
 
             if (callback_fn(value, &self)) |action| switch (action) {
                 .close_conn => {
