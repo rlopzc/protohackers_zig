@@ -28,7 +28,7 @@ pub const Client = struct {
         var reader = buf_reader.reader();
 
         const value = try reader.readUntilDelimiterOrEof(self.buffer, '\n');
-        log.info("client={} read={?s}", .{ self.socket.address, value });
+        log.info("client={} reading={?s}", .{ self.socket.address, value });
         return value;
     }
 
@@ -38,7 +38,7 @@ pub const Client = struct {
         @memcpy(dest[0..msg.len], msg);
         dest[msg.len] = '\n';
 
-        log.info("sending {}", .{std.zig.fmtEscapes(dest)});
+        log.info("client={} sending={}", .{ self.socket.address, std.zig.fmtEscapes(dest) });
 
         var buf_writer = std.io.bufferedWriter(self.socket.stream.writer());
         var writer = buf_writer.writer();
