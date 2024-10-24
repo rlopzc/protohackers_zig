@@ -30,9 +30,9 @@ pub const Client = struct {
         var buf_writer = std.io.fixedBufferStream(self.buffer);
 
         try reader.streamUntilDelimiter(buf_writer.writer(), '\n', null);
-        log.info("client={} reading={s}", .{ self.socket.address, std.zig.fmtEscapes(self.buffer) });
+        log.info("client={} reading={}", .{ self.socket.address, std.zig.fmtEscapes(self.buffer) });
 
-        log.info("client={} written={s}", .{ self.socket.address, std.zig.fmtEscapes(buf_writer.getWritten()) });
+        log.info("client={} written={}", .{ self.socket.address, std.zig.fmtEscapes(buf_writer.getWritten()) });
         return buf_writer.getWritten();
     }
 
