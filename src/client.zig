@@ -59,9 +59,12 @@ pub const Client = struct {
         log.info("client {} connected", .{self.socket.address});
 
         while (true) {
-            const value = self.read() catch |err| {
-                log.err("error when reading from stream err={}", .{err});
-                break;
+            const value = self.read() catch |err| switch (err) {
+                error.EndOfStream => continue,
+                else => {
+                    log.err("error when reading from stream err={}", .{err});
+                    break;
+                },
             };
 
             if (callback_fn(value, &self)) |action| switch (action) {
