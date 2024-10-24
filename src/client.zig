@@ -23,28 +23,31 @@ pub const Client = struct {
         };
     }
 
-    fn read(self: Self) !?[]u8 {
-        var buf_reader = std.io.bufferedReader(self.socket.stream.reader());
-        var reader = buf_reader.reader();
-
-        const value = try reader.streamUntilDelimiter(self.buffer, '\n');
-        log.info("client={} reading={?s}", .{ self.socket.address, value });
-        return value;
+    fn read(self: Self) !usize {
+        const bytes_read = try self.socket.stream.read(self.buffer);
+        log.info("client={} reading={}", .{ self.socket.address, std.zig.fmtEscapes(self.buffer[0..bytes_read]) });
+        return bytes_read;
+        // var buf_reader = std.io.bufferedReader(self.socket.stream.reader());
+        // var reader = buf_reader.reader();
+        //
+        // const value = try reader.streamUntilDelimiter(self.buffer, '\n');
+        // log.info("client={} reading={?s}", .{ self.socket.address, value });
+        // return value;
     }
 
     pub fn write(self: Self, msg: []const u8) !void {
-        var dest = try self.allocator.alloc(u8, msg.len + 1);
-        defer self.allocator.free(dest);
-        @memcpy(dest[0..msg.len], msg);
-        dest[msg.len] = '\n';
+        // var dest = try self.allocator.alloc(u8, msg.len + 1);
+        // defer self.allocator.free(dest);
+        // @memcpy(dest[0..msg.len], msg);
+        // dest[msg.len] = '\n';
 
-        log.info("client={} sending={}", .{ self.socket.address, std.zig.fmtEscapes(dest) });
+        log.info("client={} sending={}", .{ self.socket.address, std.zig.fmtEscapes(msg) });
 
-        var buf_writer = std.io.bufferedWriter(self.socket.stream.writer());
-        var writer = buf_writer.writer();
+        // var buf_writer = std.io.bufferedWriter(self.socket.stream.writer());
+        // var writer = buf_writer.writer();
 
-        try writer.writeAll(dest);
-        try buf_writer.flush();
+        _ = try self.socket.stream.write(msg);
+        // try buf_writer.flush();
     }
 
     fn deinit(self: Self) void {
@@ -57,9 +60,10 @@ pub const Client = struct {
         log.info("client {} connected", .{self.socket.address});
 
         while (true) {
-            const value = try self.read() orelse break;
+            const bytes_read = try self.read();
+            if (bytes_read == 0) break;
 
-            if (callback_fn(value, &self)) |action| switch (action) {
+            if (callback_fn(self.buffer[0..bytes_read], &self)) |action| switch (action) {
                 .close_conn => {
                     break;
                 },
