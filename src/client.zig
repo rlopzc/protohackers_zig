@@ -2,11 +2,13 @@ const std = @import("std");
 const log = std.log.scoped(.client);
 const net = std.net;
 const mem = std.mem;
+const BufferedReader = std.io.BufferedReader(4096, net.Stream.Reader);
 
 pub const Client = struct {
     allocator: mem.Allocator,
     socket: net.Server.Connection,
     buffer: []u8,
+    socket_reader: BufferedReader,
 
     const Self = @This();
 
@@ -20,17 +22,19 @@ pub const Client = struct {
             .allocator = allocator,
             .socket = socket,
             .buffer = try allocator.alloc(u8, 4096),
+            .socket_reader = std.io.bufferedReader(socket.stream.reader()),
         };
     }
 
     fn read(self: Self) ![]u8 {
-        var buf_reader = std.io.bufferedReader(self.socket.stream.reader());
-        var reader = buf_reader.reader();
+        var socket_reader = self.socket_reader;
+        var reader = socket_reader.reader();
 
         var buf_writer = std.io.fixedBufferStream(self.buffer);
-
         try reader.streamUntilDelimiter(buf_writer.writer(), '\n', null);
+
         log.info("client={} receive={}", .{ self.socket.address, std.zig.fmtEscapes(buf_writer.getWritten()) });
+
         return buf_writer.getWritten();
     }
 
