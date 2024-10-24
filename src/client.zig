@@ -24,6 +24,7 @@ pub const Client = struct {
     }
 
     fn read(self: Self) ![]u8 {
+        log.info("buffer={s}", .{self.buffer});
         var buf_reader = std.io.bufferedReader(self.socket.stream.reader());
         var reader = buf_reader.reader();
 
@@ -31,6 +32,8 @@ pub const Client = struct {
 
         try reader.streamUntilDelimiter(buf_writer.writer(), '\n', self.buffer.len);
         log.info("client={} reading={s}", .{ self.socket.address, self.buffer });
+
+        log.info("written={s}", .{buf_writer.getWritten()});
         return buf_writer.getWritten();
     }
 
