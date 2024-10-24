@@ -29,16 +29,9 @@ pub const Client = struct {
 
         var buf_writer = std.io.fixedBufferStream(self.buffer);
 
-        reader.streamUntilDelimiter(buf_writer.writer(), '\n', self.buffer.len) catch |err| {
-            log.err("error reading from stream err={}", .{err});
-            return err;
-        };
+        try reader.streamUntilDelimiter(buf_writer.writer(), '\n', self.buffer.len);
         log.info("client={} reading={s}", .{ self.socket.address, self.buffer });
         return buf_writer.getWritten();
-        // const value = try reader.readUntilDelimiterOrEof(self.buffer, '\n');
-        //
-        // log.info("client={} reading={?s}", .{ self.socket.address, value });
-        // return value;
     }
 
     pub fn write(self: Self, msg: []const u8) !void {
@@ -66,7 +59,10 @@ pub const Client = struct {
         log.info("client {} connected", .{self.socket.address});
 
         while (true) {
-            const value = self.read() catch break;
+            const value = self.read() catch |err| {
+                log.err("error when reading from stream err={}", .{err});
+                break;
+            };
 
             if (callback_fn(value, &self)) |action| switch (action) {
                 .close_conn => {
