@@ -38,7 +38,12 @@ const Response = struct {
 
 fn callback(msg: []const u8, client: *const Client) ?Client.Action {
     var request: Request = undefined;
-    if (json.parseFromSlice(Request, gpa.allocator(), msg, .{})) |parsed_json| {
+    if (json.parseFromSlice(
+        Request,
+        gpa.allocator(),
+        msg,
+        .{ .ignore_unknown_fields = true },
+    )) |parsed_json| {
         defer parsed_json.deinit();
 
         if (!std.mem.eql(u8, parsed_json.value.method, "isPrime")) {
@@ -50,7 +55,7 @@ fn callback(msg: []const u8, client: *const Client) ?Client.Action {
         log.info("parsing json error={}", .{err});
         client.write(malformed_request) catch return .close_conn;
 
-        return Client.Action.close_conn;
+        return .close_conn;
     }
 
     const prime = is_prime(request.number);
