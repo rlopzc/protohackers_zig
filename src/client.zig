@@ -29,7 +29,10 @@ pub const Client = struct {
 
         var buf_writer = std.io.fixedBufferStream(self.buffer);
 
-        try reader.streamUntilDelimiter(buf_writer.writer(), '\n', self.buffer.len);
+        reader.streamUntilDelimiter(buf_writer.writer(), '\n', self.buffer.len) catch |err| {
+            log.err("error reading from stream err={}", .{err});
+            return err;
+        };
         log.info("client={} reading={s}", .{ self.socket.address, self.buffer });
         return buf_writer.getWritten();
         // const value = try reader.readUntilDelimiterOrEof(self.buffer, '\n');
