@@ -23,7 +23,7 @@ pub const Client = struct {
         };
     }
 
-    fn read(self: Self) !?[]u8 {
+    fn read(self: Self) ![]u8 {
         var buf_reader = std.io.bufferedReader(self.socket.stream.reader());
         var reader = buf_reader.reader();
 
@@ -63,7 +63,7 @@ pub const Client = struct {
         log.info("client {} connected", .{self.socket.address});
 
         while (true) {
-            const value = self.read() catch break orelse break;
+            const value = self.read() catch break;
 
             if (callback_fn(value, &self)) |action| switch (action) {
                 .close_conn => {
