@@ -23,16 +23,7 @@ pub fn main() !void {
     }
 }
 
-fn callback(msg: []const u8, socket: *const net.Server.Connection) ?Client.Action {
-    var dest = allocator.alloc(u8, msg.len + 1) catch unreachable;
-    defer allocator.free(dest);
-
-    @memcpy(dest[0..msg.len], msg);
-
-    dest[msg.len] = '\n';
-
-    log.info("sending {}", .{std.zig.fmtEscapes(dest)});
-
-    socket.stream.writeAll(dest) catch unreachable;
+fn callback(msg: []const u8, client: *const Client) ?Client.Action {
+    client.write(msg) catch unreachable;
     return null;
 }

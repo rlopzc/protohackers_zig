@@ -10,7 +10,7 @@ pub const Client = struct {
 
     const Self = @This();
 
-    const callback = fn (msg: []const u8, socket: *const net.Server.Connection) ?Action;
+    const callback = fn (msg: []const u8, client: *const Self) ?Action;
     pub const Action = enum {
         close_conn,
     };
@@ -24,9 +24,27 @@ pub const Client = struct {
     }
 
     fn read(self: Self) !?[]u8 {
-        const value = try self.socket.stream.reader().readUntilDelimiterOrEof(self.buffer, '\n');
+        var buf_reader = std.io.bufferedReader(self.socket.stream.reader());
+        var reader = buf_reader.reader();
+
+        const value = try reader.readUntilDelimiterOrEof(self.buffer, '\n');
         log.info("client={} read={}", .{ self.socket.address, std.zig.fmtEscapes(value orelse "") });
         return value;
+    }
+
+    pub fn write(self: Self, msg: []const u8) !void {
+        var dest = try self.allocator.alloc(u8, msg.len + 1);
+        defer self.allocator.free(dest);
+        @memcpy(dest[0..msg.len], msg);
+        dest[msg.len] = '\n';
+
+        log.info("sending {}", .{std.zig.fmtEscapes(dest)});
+
+        var buf_writer = std.io.bufferedWriter(self.socket.stream.writer());
+        var writer = buf_writer.writer();
+
+        try writer.writeAll(dest);
+        try buf_writer.flush();
     }
 
     fn deinit(self: Self) void {
@@ -41,7 +59,7 @@ pub const Client = struct {
         while (true) {
             const value = try self.read() orelse break;
 
-            if (callback_fn(value, &self.socket)) |action| switch (action) {
+            if (callback_fn(value, &self)) |action| switch (action) {
                 .close_conn => {
                     break;
                 },

@@ -24,7 +24,7 @@ pub fn main() !void {
     }
 }
 
-const malformed_request: []const u8 = "{}\n";
+const malformed_request: []const u8 = "{}";
 
 const Request = struct {
     method: []const u8,
@@ -36,19 +36,19 @@ const Response = struct {
     prime: bool,
 };
 
-fn callback(msg: []const u8, socket: *const net.Server.Connection) ?Client.Action {
+fn callback(msg: []const u8, client: *const Client) ?Client.Action {
     var request: Request = undefined;
     if (json.parseFromSlice(Request, gpa.allocator(), msg, .{})) |parsed_json| {
         defer parsed_json.deinit();
 
         if (!std.mem.eql(u8, parsed_json.value.method, "isPrime")) {
-            socket.stream.writeAll(malformed_request) catch unreachable;
+            client.write(malformed_request) catch unreachable;
             return null;
         }
         request = parsed_json.value;
     } else |err| {
         log.info("parsing json error={}", .{err});
-        socket.stream.writeAll(malformed_request) catch unreachable;
+        client.write(malformed_request) catch unreachable;
 
         return Client.Action.close_conn;
     }
@@ -64,8 +64,7 @@ fn callback(msg: []const u8, socket: *const net.Server.Connection) ?Client.Actio
 
     // https://www.openmymind.net/Writing-Json-To-A-Custom-Output-in-Zig/
     json.stringify(response, .{}, buf.writer()) catch unreachable;
-    buf.append('\n') catch unreachable;
-    socket.stream.writeAll(buf.items) catch unreachable;
+    client.write(buf.items) catch unreachable;
     return null;
 }
 
