@@ -42,13 +42,13 @@ fn callback(msg: []const u8, client: *const Client) ?Client.Action {
         defer parsed_json.deinit();
 
         if (!std.mem.eql(u8, parsed_json.value.method, "isPrime")) {
-            client.write(malformed_request) catch unreachable;
+            client.write(malformed_request) catch .close_conn;
             return null;
         }
         request = parsed_json.value;
     } else |err| {
         log.info("parsing json error={}", .{err});
-        client.write(malformed_request) catch unreachable;
+        client.write(malformed_request) catch .close_conn;
 
         return Client.Action.close_conn;
     }
@@ -64,7 +64,7 @@ fn callback(msg: []const u8, client: *const Client) ?Client.Action {
 
     // https://www.openmymind.net/Writing-Json-To-A-Custom-Output-in-Zig/
     json.stringify(response, .{}, buf.writer()) catch unreachable;
-    client.write(buf.items) catch unreachable;
+    client.write(buf.items) catch .close_conn;
     return null;
 }
 
