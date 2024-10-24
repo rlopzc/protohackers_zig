@@ -27,7 +27,7 @@ pub const Client = struct {
         var buf_reader = std.io.bufferedReader(self.socket.stream.reader());
         var reader = buf_reader.reader();
 
-        const value = try reader.readUntilDelimiterOrEof(self.buffer, '\n');
+        const value = try reader.streamUntilDelimiter(self.buffer, '\n');
         log.info("client={} reading={?s}", .{ self.socket.address, value });
         return value;
     }
