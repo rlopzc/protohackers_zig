@@ -24,16 +24,15 @@ pub const Client = struct {
     }
 
     fn read(self: Self) ![]u8 {
-        log.info("buffer={s}", .{self.buffer});
         var buf_reader = std.io.bufferedReader(self.socket.stream.reader());
         var reader = buf_reader.reader();
 
         var buf_writer = std.io.fixedBufferStream(self.buffer);
 
-        try reader.streamUntilDelimiter(buf_writer.writer(), '\n', self.buffer.len);
-        log.info("client={} reading={s}", .{ self.socket.address, self.buffer });
+        try reader.streamUntilDelimiter(buf_writer.writer(), '\n', null);
+        log.info("client={} reading={s}", .{ self.socket.address, std.zig.fmtEscapes(self.buffer) });
 
-        log.info("written={s}", .{buf_writer.getWritten()});
+        log.info("client={} written={s}", .{ self.socket.address, std.zig.fmtEscapes(buf_writer.getWritten()) });
         return buf_writer.getWritten();
     }
 
@@ -63,10 +62,10 @@ pub const Client = struct {
 
         while (true) {
             const value = self.read() catch |err| switch (err) {
-                error.EndOfStream => continue,
+                error.EndOfStream => break,
                 else => {
                     log.err("error when reading from stream err={}", .{err});
-                    break;
+                    return err;
                 },
             };
 
