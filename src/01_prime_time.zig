@@ -28,7 +28,7 @@ const malformed_request: []const u8 = "{}";
 
 const Request = struct {
     method: []const u8,
-    number: f32,
+    number: f64,
 };
 
 const Response = struct {
@@ -68,7 +68,7 @@ fn callback(msg: []const u8, client: *const Client) ?Client.Action {
     return null;
 }
 
-fn is_prime(float: f32) bool {
+fn is_prime(float: f64) bool {
     const number: isize = @intFromFloat(float);
     if (number <= 1) return false;
 
