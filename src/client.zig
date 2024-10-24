@@ -49,7 +49,6 @@ pub const Client = struct {
             error.ConnectionResetByPeer => return,
             else => return err,
         };
-        try buf_writer.flush();
     }
 
     fn deinit(self: Self) void {
