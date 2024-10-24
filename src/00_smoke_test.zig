@@ -24,6 +24,7 @@ pub fn main() !void {
 }
 
 fn callback(msg: []const u8, client: *const Client) ?Client.Action {
+    log.info("reading={}", .{std.zig.fmtEscapes(msg)});
     client.write(msg) catch unreachable;
     return null;
 }
