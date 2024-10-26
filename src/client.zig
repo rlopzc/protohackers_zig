@@ -134,7 +134,9 @@ pub const Client = struct {
             reader.streamUntilDelimiter(buf_stream.writer(), '\n', null) catch |err| switch (err) {
                 error.EndOfStream => {
                     log.info("EOStream read until now = {}", .{std.zig.fmtEscapes(buf_stream.getWritten())});
-                    break;
+                    if (buf_stream.getWritten().len == 0) {
+                        break;
+                    }
                 },
                 else => {
                     return err;
