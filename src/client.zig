@@ -36,16 +36,17 @@ pub const Client = struct {
     pub fn write(self: Self, msg: []const u8) !void {
         var dest = try self.allocator.alloc(u8, msg.len + 1);
         defer self.allocator.free(dest);
+
         @memcpy(dest[0..msg.len], msg);
         dest[msg.len] = '\n';
 
         log.info("client={} sending={}", .{ self.socket.address, std.zig.fmtEscapes(dest) });
 
-        var buf_writer = std.io.bufferedWriter(self.socket.stream.writer());
-        var writer = buf_writer.writer();
+        // var buf_writer = std.io.bufferedWriter(self.socket.stream.writer());
+        // var writer = buf_writer.writer();
 
-        try writer.writeAll(dest);
-        try buf_writer.flush();
+        try self.socket.stream.writeAll(dest);
+        // try buf_writer.flush();
     }
 
     fn deinit(self: Self) void {
