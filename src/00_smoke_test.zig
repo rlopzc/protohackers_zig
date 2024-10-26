@@ -24,10 +24,6 @@ pub fn main() !void {
 }
 
 fn callback(msg: []const u8, client: *const Client) ?Client.Action {
-    var dest: []u8 = allocator.alloc(u8, msg.len + 1) catch unreachable;
-    defer allocator.free(dest);
-    @memcpy(dest[0..msg.len], msg);
-    dest[msg.len] = '\n';
-    client.write(dest) catch unreachable;
+    client.write(msg) catch unreachable;
     return null;
 }

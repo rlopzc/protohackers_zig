@@ -131,19 +131,26 @@ pub const Client = struct {
             // const msg = reader.readMessage() catch break;
             defer buf_stream.reset();
 
-            reader.streamUntilDelimiter(buf_stream.writer(), '\n', null) catch |err| switch (err) {
-                error.EndOfStream => {
-                    log.info("EOStream read until now = {}", .{std.zig.fmtEscapes(buf_stream.getWritten())});
-                    if (buf_stream.getWritten().len == 0) {
-                        break;
-                    }
-                },
-                else => {
-                    return err;
-                },
-            };
-
-            const msg: []const u8 = buf_stream.getWritten();
+            var msg: []u8 = undefined;
+            if (reader.streamUntilDelimiter(buf_stream.writer(), '\n', null)) {
+                const pos = try buf_stream.getPos();
+                msg = buf[0..(pos + 1)];
+                msg[pos] = '\n';
+                log.info("msg buf pos {}", .{std.zig.fmtEscapes(msg)});
+            } else |err| {
+                switch (err) {
+                    error.EndOfStream => {
+                        log.info("EOStream read until now = {}", .{std.zig.fmtEscapes(buf_stream.getWritten())});
+                        if (buf_stream.getWritten().len == 0) {
+                            break;
+                        }
+                        msg = buf_stream.getWritten();
+                    },
+                    else => {
+                        return err;
+                    },
+                }
+            }
 
             if (callback_fn(msg, &self)) |action| switch (action) {
                 .close_conn => {
