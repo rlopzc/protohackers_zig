@@ -115,7 +115,7 @@ pub const Client = struct {
         defer self.deinit();
         log.info("client {} connected", .{self.socket.address});
 
-        var buf: [1024]u8 = undefined;
+        var buf: [4096]u8 = undefined;
         var reader = Reader{ .pos = 0, .buf = &buf, .stream = self.socket.stream };
 
         while (true) {
