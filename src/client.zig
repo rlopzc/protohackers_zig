@@ -134,9 +134,12 @@ pub const Client = struct {
             reader.streamUntilDelimiter(buf_stream.writer(), '\n', null) catch |err| switch (err) {
                 error.EndOfStream => {
                     const pos = try buf_stream.getPos();
-                    log.info("delimeter not found but buff contains left overs", .{buf[pos..]});
+                    log.info("delimeter not found but buff might contain left overs buf={s}", .{buf[pos..]});
 
-                    if (pos == 0) break;
+                    if (pos == 0) {
+                        log.info("no leftovers, breaking", .{});
+                        break;
+                    }
                 },
                 else => {
                     return err;
