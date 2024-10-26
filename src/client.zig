@@ -23,7 +23,17 @@ const Reader = struct {
 
             const pos = self.pos;
             const bytes_read = try self.stream.read(buf[pos..]);
-            if (bytes_read == 0) return error.Closed;
+            if (bytes_read == 0) {
+                // If we consumed every byte, return error.Closed
+                if (self.start == self.pos) {
+                    return error.Closed;
+                } else {
+                    // Otherwise, return the pending items in the buffer
+                    const unprocessed = buf[self.start..self.pos];
+                    self.pos = self.start;
+                    return unprocessed;
+                }
+            }
 
             self.pos = pos + bytes_read;
         }
