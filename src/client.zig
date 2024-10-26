@@ -24,7 +24,7 @@ const Reader = struct {
             const pos = self.pos;
             const bytes_read = try self.stream.read(buf[pos..]);
             if (bytes_read == 0) {
-                // If we consumed every byte, return error.Closed
+                // If we consumed every byte and there are no pending buffer items, return error.Closed
                 if (self.start == self.pos) {
                     return error.Closed;
                 } else {
@@ -60,9 +60,10 @@ const Reader = struct {
         }
 
         log.info("buffer={} start={d} pos={d} index={?d}", .{ std.zig.fmtEscapes(buf[0..pos]), start, pos, delimiter_index });
+        const delimiter_pos = delimiter_index.? + 1;
 
-        self.start = start + delimiter_index.? + 1;
-        return unprocessed[0..delimiter_index.?];
+        self.start = start + delimiter_pos;
+        return unprocessed[0..delimiter_pos];
     }
 
     fn ensureSpace(self: *Self, space: usize) error{BufferTooSmall}!void {
@@ -106,15 +107,8 @@ pub const Client = struct {
     }
 
     pub fn write(self: Self, msg: []const u8) !void {
-        var dest = try self.allocator.alloc(u8, msg.len + 1);
-        defer self.allocator.free(dest);
-
-        @memcpy(dest[0..msg.len], msg);
-        dest[msg.len] = '\n';
-
-        log.info("client={} sending={}", .{ self.socket.address, std.zig.fmtEscapes(dest) });
-
-        _ = try self.socket.stream.write(dest);
+        log.info("client={} sending={}", .{ self.socket.address, std.zig.fmtEscapes(msg) });
+        _ = try self.socket.stream.write(msg);
     }
 
     fn deinit(self: Self) void {
