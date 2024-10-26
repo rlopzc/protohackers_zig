@@ -48,7 +48,7 @@ pub const Client = struct {
         // var buf_writer = std.io.bufferedWriter(self.socket.stream.writer());
         // var writer = buf_writer.writer();
 
-        try self.socket.stream.writeAll(dest);
+        _ = try self.socket.stream.write(dest);
         // try buf_writer.flush();
     }
 
