@@ -2,6 +2,7 @@ const std = @import("std");
 const log = std.log.scoped(.tcp_server);
 const net = std.net;
 const mem = std.mem;
+const posix = std.posix;
 
 const Client = @import("client.zig").Client;
 
@@ -27,6 +28,11 @@ pub const TcpServer = struct {
 
     pub fn accept(self: *Self) !Client {
         const socket = try self.server.accept();
+
+        // Added these two lines (.tv_sec and .tv_usec before zig 0.14.0)
+        const timeout = posix.timeval{ .tv_sec = 2, .tv_usec = 500_000 };
+        try posix.setsockopt(socket.stream.handle, posix.SOL.SOCKET, posix.SO.RCVTIMEO, &std.mem.toBytes(timeout));
+        try posix.setsockopt(socket.stream.handle, posix.SOL.SOCKET, posix.SO.SNDTIMEO, &std.mem.toBytes(timeout));
         return Client.new(self.allocator, socket);
     }
 
