@@ -69,6 +69,7 @@ fn callback(msg: []const u8, client: *const Client) ?Client.Action {
 
     // https://www.openmymind.net/Writing-Json-To-A-Custom-Output-in-Zig/
     json.stringify(response, .{}, buf.writer()) catch unreachable;
+    buf.append('\n') catch unreachable;
     client.write(buf.items) catch return .close_conn;
     return null;
 }
