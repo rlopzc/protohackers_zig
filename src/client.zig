@@ -143,20 +143,7 @@ pub const Client = struct {
                 },
             };
 
-            const msg: []u8 = buf_stream.getWritten();
-            log.info("read msg={} pos={!d} endPos={!d}", .{
-                std.zig.fmtEscapes(msg),
-                buf_stream.getPos(),
-                buf_stream.getEndPos(),
-            });
-
-            if (msg.len == 0) {
-                log.info("NO MSG READ buffer={} pos={!d} endPos={!d}", .{
-                    std.zig.fmtEscapes(&buf),
-                    buf_stream.getPos(),
-                    buf_stream.getEndPos(),
-                });
-            }
+            const msg: []const u8 = buf_stream.getWritten();
 
             if (callback_fn(msg, &self)) |action| switch (action) {
                 .close_conn => {
