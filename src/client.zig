@@ -133,13 +133,7 @@ pub const Client = struct {
 
             reader.streamUntilDelimiter(buf_stream.writer(), '\n', null) catch |err| switch (err) {
                 error.EndOfStream => {
-                    const pos = try buf_stream.getPos();
-                    log.info("delimeter not found but buff might contain left overs buf={}", .{std.zig.fmtEscapes(buf[pos..])});
-
-                    if (pos == 0) {
-                        log.info("no leftovers, breaking", .{});
-                        break;
-                    }
+                    break;
                 },
                 else => {
                     return err;
@@ -154,7 +148,7 @@ pub const Client = struct {
             });
 
             if (msg.len == 0) {
-                log.info("buffer={} pos={!d} endPos={!d}", .{
+                log.info("NO MSG READ buffer={} pos={!d} endPos={!d}", .{
                     std.zig.fmtEscapes(&buf),
                     buf_stream.getPos(),
                     buf_stream.getEndPos(),
