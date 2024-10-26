@@ -120,10 +120,43 @@ pub const Client = struct {
         log.info("client {} connected", .{self.socket.address});
 
         var buf: [4096]u8 = undefined;
-        var reader = Reader{ .pos = 0, .buf = &buf, .stream = self.socket.stream };
+        var buf_stream = std.io.fixedBufferStream(&buf);
+
+        // var reader = Reader{ .pos = 0, .buf = &buf, .stream = self.socket.stream };
+
+        var buf_reader = std.io.bufferedReader(self.socket.stream.reader());
+        var reader = buf_reader.reader();
 
         while (true) {
-            const msg = reader.readMessage() catch break;
+            // const msg = reader.readMessage() catch break;
+            defer buf_stream.reset();
+
+            reader.streamUntilDelimiter(buf_stream.writer(), '\n', null) catch |err| switch (err) {
+                error.EndOfStream => {
+                    const pos = try buf_stream.getPos();
+                    log.info("delimeter not found but buff contains left overs", .{buf[pos..]});
+
+                    if (pos == 0) break;
+                },
+                else => {
+                    return err;
+                },
+            };
+
+            const msg: []u8 = buf_stream.getWritten();
+            log.info("read msg={s} pos={!d} endPos={!d}", .{
+                msg,
+                buf_stream.getPos(),
+                buf_stream.getEndPos(),
+            });
+
+            if (msg.len == 0) {
+                log.info("buffer={} pos={!d} endPos={!d}", .{
+                    std.zig.fmtEscapes(&buf),
+                    buf_stream.getPos(),
+                    buf_stream.getEndPos(),
+                });
+            }
 
             if (callback_fn(msg, &self)) |action| switch (action) {
                 .close_conn => {
