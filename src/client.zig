@@ -24,13 +24,16 @@ pub const Client = struct {
         };
     }
 
-    fn read(self: Self) ![]u8 {
-        var buf_writer = std.io.fixedBufferStream(self.buffer);
-        try self.socket.stream.reader().streamUntilDelimiter(buf_writer.writer(), '\n', null);
+    fn read(self: Self) (error{EndOfStream} || std.posix.ReadError)![]u8 {
+        // var buf_writer = std.io.fixedBufferStream(self.buffer);
+        // try self.socket.stream.reader().streamUntilDelimiter(buf_writer.writer(), '\n', null);
 
-        log.info("client={} receive={}", .{ self.socket.address, std.zig.fmtEscapes(buf_writer.getWritten()) });
+        const bytes_read = try self.socket.stream.read(self.buffer);
+        if (bytes_read == 0) return error.EndOfStream;
 
-        return buf_writer.getWritten();
+        log.info("client={} receive={}", .{ self.socket.address, std.zig.fmtEscapes(self.buffer[0..(bytes_read - 1)]) });
+
+        return self.buffer[0..(bytes_read - 1)];
     }
 
     pub fn write(self: Self, msg: []const u8) !void {
