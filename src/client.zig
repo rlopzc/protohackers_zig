@@ -131,16 +131,15 @@ pub const Client = struct {
             // const msg = reader.readMessage() catch break;
             defer buf_stream.reset();
 
-            while (true) {
-                reader.streamUntilDelimiter(buf_stream.writer(), '\n', null) catch |err| switch (err) {
-                    error.EndOfStream => {
-                        break;
-                    },
-                    else => {
-                        return err;
-                    },
-                };
-            }
+            reader.streamUntilDelimiter(buf_stream.writer(), '\n', null) catch |err| switch (err) {
+                error.EndOfStream => {
+                    log.info("EOStream read until now = {}", .{std.zig.fmtEscapes(buf_stream.getWritten())});
+                    break;
+                },
+                else => {
+                    return err;
+                },
+            };
 
             const msg: []u8 = buf_stream.getWritten();
             log.info("read msg={} pos={!d} endPos={!d}", .{
