@@ -55,14 +55,13 @@ const Reader = struct {
         // search index of the delimiter
         const delimiter_index = std.mem.indexOfScalar(u8, unprocessed, '\n');
         if (delimiter_index == null) {
-            self.ensureSpace(unprocessed.len + 16) catch unreachable;
+            self.ensureSpace(unprocessed.len + 409) catch unreachable;
             return null;
         }
 
-        log.info("buffer={} start={d} pos={d} index={?d}", .{ std.zig.fmtEscapes(buf[0..pos]), start, pos, delimiter_index });
         const delimiter_pos = delimiter_index.? + 1;
-
         self.start = start + delimiter_pos;
+
         return unprocessed[0..delimiter_pos];
     }
 
@@ -108,7 +107,7 @@ pub const Client = struct {
 
     pub fn write(self: Self, msg: []const u8) !void {
         log.info("client={} sending={}", .{ self.socket.address, std.zig.fmtEscapes(msg) });
-        _ = try self.socket.stream.write(msg);
+        _ = try self.socket.stream.writeAll(msg);
     }
 
     fn deinit(self: Self) void {
@@ -124,6 +123,7 @@ pub const Client = struct {
 
         while (true) {
             const msg = reader.readMessage() catch break;
+            log.info("client={} received={}", .{ self.socket.address, std.zig.fmtEscapes(msg) });
 
             if (callback_fn(msg, &self)) |action| switch (action) {
                 .close_conn => {
