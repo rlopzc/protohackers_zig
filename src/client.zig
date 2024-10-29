@@ -106,6 +106,7 @@ pub const Client = struct {
     }
 
     pub fn write(self: Self, msg: []const u8) !void {
+        // TODO: use buffered writer
         log.info("client={} sending={}", .{ self.socket.address, std.zig.fmtEscapes(msg) });
         _ = try self.socket.stream.writeAll(msg);
     }
