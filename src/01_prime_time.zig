@@ -24,7 +24,7 @@ pub fn main() !void {
     }
 }
 
-const malformed_request: []const u8 = "{}";
+const malformed_request: []const u8 = "{}\n";
 
 const Request = struct {
     method: []const u8,
