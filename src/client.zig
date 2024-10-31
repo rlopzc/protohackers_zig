@@ -55,7 +55,7 @@ const Reader = struct {
         // search index of the delimiter
         const delimiter_index = std.mem.indexOfScalar(u8, unprocessed, '\n');
         if (delimiter_index == null) {
-            self.ensureSpace(unprocessed.len + 409) catch unreachable;
+            self.ensureSpace(unprocessed.len + 128) catch unreachable;
             return null;
         }
 
