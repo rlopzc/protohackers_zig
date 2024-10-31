@@ -80,7 +80,7 @@ fn is_prime(float: f64) bool {
 
     var prime = true;
     var i: isize = 2;
-    while (i < number) : (i += 1) {
+    while (i * i <= number) : (i += 1) {
         if (@rem(number, i) == 0) {
             prime = false;
             break;
