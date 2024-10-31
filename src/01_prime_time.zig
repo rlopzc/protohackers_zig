@@ -75,6 +75,7 @@ fn callback(msg: []const u8, client: *const Client) ?Client.Action {
                     request.number = number.float;
                 },
                 else => {
+                    log.info("got number as {any}", .{number});
                     client.write(malformed_request) catch return .close_conn;
                     return null;
                 },
