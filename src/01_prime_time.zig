@@ -48,12 +48,19 @@ fn callback(msg: []const u8, client: *const Client) ?Client.Action {
         defer parsed_json.deinit();
 
         if (parsed_json.value.object.get("method")) |method| {
-            if (!std.mem.eql(u8, method.string, "isPrime")) {
-                client.write(malformed_request) catch return .close_conn;
-                return null;
+            switch (method) {
+                .string => {
+                    if (!std.mem.eql(u8, method.string, "isPrime")) {
+                        client.write(malformed_request) catch return .close_conn;
+                        return null;
+                    }
+                    request.method = "isPrime";
+                },
+                else => {
+                    client.write(malformed_request) catch return .close_conn;
+                    return null;
+                },
             }
-
-            request.method = "isPrime";
         } else {
             client.write(malformed_request) catch return .close_conn;
             return null;
