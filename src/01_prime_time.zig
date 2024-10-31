@@ -38,19 +38,44 @@ const Response = struct {
 
 fn callback(msg: []const u8, client: *const Client) ?Client.Action {
     var request: Request = undefined;
+
     if (json.parseFromSlice(
-        Request,
+        json.Value,
         gpa.allocator(),
         msg,
         .{ .ignore_unknown_fields = true },
     )) |parsed_json| {
         defer parsed_json.deinit();
 
-        if (!std.mem.eql(u8, parsed_json.value.method, "isPrime")) {
+        if (parsed_json.value.object.get("method")) |method| {
+            if (!std.mem.eql(u8, method.string, "isPrime")) {
+                client.write(malformed_request) catch return .close_conn;
+                return null;
+            }
+
+            request.method = "isPrime";
+        } else {
             client.write(malformed_request) catch return .close_conn;
             return null;
         }
-        request = parsed_json.value;
+
+        if (parsed_json.value.object.get("number")) |number| {
+            switch (number) {
+                .integer => {
+                    request.number = @floatFromInt(number.integer);
+                },
+                .float => {
+                    request.number = number.float;
+                },
+                else => {
+                    client.write(malformed_request) catch return .close_conn;
+                    return null;
+                },
+            }
+        } else {
+            client.write(malformed_request) catch return .close_conn;
+            return null;
+        }
     } else |err| {
         log.info("parsing json error={}", .{err});
         client.write(malformed_request) catch return .close_conn;
