@@ -55,7 +55,7 @@ const Reader = struct {
         // search index of the delimiter
         const delimiter_index = std.mem.indexOfScalar(u8, unprocessed, '\n');
         if (delimiter_index == null) {
-            self.ensureSpace(unprocessed.len + 128) catch unreachable;
+            self.ensureSpace(128) catch unreachable;
             return null;
         }
 
@@ -68,7 +68,7 @@ const Reader = struct {
     fn ensureSpace(self: *Self, space: usize) error{BufferTooSmall}!void {
         const buf = self.buf;
         if (buf.len < space) {
-            log.err("buffer to small", .{});
+            log.err("buffer to small, space={d}", .{space});
             return error.BufferTooSmall;
         }
 
