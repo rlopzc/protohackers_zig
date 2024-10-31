@@ -74,6 +74,8 @@ fn callback(msg: []const u8, client: *const Client) ?Client.Action {
                 .float => {
                     request.number = number.float;
                 },
+                // TODO: allow big number
+                // ,\"number\":59535173233488124469822564887457399415553588963041882458
                 else => {
                     log.info("got number as {any}", .{number});
                     client.write(malformed_request) catch return .close_conn;
