@@ -43,7 +43,7 @@ fn callback(msg: []const u8, client: *const Client) ?Client.Action {
         json.Value,
         gpa.allocator(),
         msg,
-        .{},
+        .{ .ignore_unknown_fields = true },
     )) |parsed_json| {
         defer parsed_json.deinit();
 
