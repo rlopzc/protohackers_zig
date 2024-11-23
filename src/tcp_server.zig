@@ -7,12 +7,11 @@ const posix = std.posix;
 const Client = @import("client.zig").Client;
 
 pub const TcpServer = struct {
-    allocator: mem.Allocator,
     server: net.Server,
 
     const Self = @This();
 
-    pub fn start(allocator: mem.Allocator, port: u16) !Self {
+    pub fn start(port: u16) !Self {
         const address = try net.Address.resolveIp("0.0.0.0", port);
 
         const server = try address.listen(.{
@@ -21,7 +20,6 @@ pub const TcpServer = struct {
         log.info("Server listening on port {d}", .{address.getPort()});
 
         return .{
-            .allocator = allocator,
             .server = server,
         };
     }
@@ -33,7 +31,7 @@ pub const TcpServer = struct {
         const timeout = posix.timeval{ .tv_sec = 10, .tv_usec = 0 };
         try posix.setsockopt(socket.stream.handle, posix.SOL.SOCKET, posix.SO.RCVTIMEO, &std.mem.toBytes(timeout));
         try posix.setsockopt(socket.stream.handle, posix.SOL.SOCKET, posix.SO.SNDTIMEO, &std.mem.toBytes(timeout));
-        return Client.new(self.allocator, socket);
+        return Client.new(socket);
     }
 
     pub fn deinit(self: *Self) void {

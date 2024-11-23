@@ -2,7 +2,6 @@ const std = @import("std");
 const log = std.log.scoped(.client);
 const net = std.net;
 const mem = std.mem;
-const BufferedReader = std.io.BufferedReader(4096, net.Stream.Reader);
 
 const Reader = struct {
     buf: []u8,
@@ -88,7 +87,6 @@ const Reader = struct {
 };
 
 pub const Client = struct {
-    allocator: mem.Allocator,
     socket: net.Server.Connection,
 
     const Self = @This();
@@ -98,9 +96,8 @@ pub const Client = struct {
         close_conn,
     };
 
-    pub fn new(allocator: mem.Allocator, socket: net.Server.Connection) !Self {
+    pub fn new(socket: net.Server.Connection) !Self {
         return .{
-            .allocator = allocator,
             .socket = socket,
         };
     }
