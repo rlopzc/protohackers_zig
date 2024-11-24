@@ -153,6 +153,7 @@ fn is_prime(n: Number) bool {
 
             return prime;
         },
+        // TODO: Calculate prime for big_int
         .big => |_| {
             n.big.dump();
             return false;
