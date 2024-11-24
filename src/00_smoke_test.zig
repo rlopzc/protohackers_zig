@@ -19,7 +19,6 @@ pub fn main() !void {
     }
 }
 
-fn callback(msg: []const u8, client: *const Client) Client.Error!void {
+fn callback(msg: []const u8, client: *const Client) !void {
     try client.write(msg);
-    return null;
 }
