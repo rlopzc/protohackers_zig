@@ -90,13 +90,7 @@ pub const Client = struct {
     socket: net.Server.Connection,
 
     const Self = @This();
-
-    pub const Error = error{
-        WriteError,
-        close_conn,
-    };
-    // TODO: define error set union https://ziglang.org/documentation/master/#toc-Merging-Error-Sets
-    const callback = fn (msg: []const u8, client: *const Self) !void;
+    const callback = fn (msg: []const u8, client: *const Self) anyerror!void;
 
     pub fn new(socket: net.Server.Connection) !Self {
         return .{
@@ -126,7 +120,7 @@ pub const Client = struct {
             log.info("client={} received={}", .{ self.socket.address, std.zig.fmtEscapes(msg) });
 
             callback_fn(msg, &self) catch |err| switch (err) {
-                .close_conn => {
+                else => {
                     break;
                 },
             };
