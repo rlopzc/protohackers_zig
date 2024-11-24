@@ -19,7 +19,7 @@ pub fn main() !void {
     }
 }
 
-fn callback(msg: []const u8, client: *const Client) ?Client.Action {
-    client.write(msg) catch unreachable;
+fn callback(msg: []const u8, client: *const Client) Client.Error!void {
+    try client.write(msg);
     return null;
 }
