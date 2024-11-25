@@ -2,7 +2,6 @@ const std = @import("std");
 const log = std.log.scoped(.prime_time);
 const net = std.net;
 const json = std.json;
-const big_int = std.math.big.int;
 
 const TcpServer = @import("tcp_server.zig").TcpServer;
 const Client = @import("client.zig").Client;
@@ -27,35 +26,13 @@ pub fn main() !void {
 
 const malformed_request: []const u8 = "{}\n";
 
-const Number = union(enum) {
-    int: isize,
-    big: big_int.Managed,
-
-    const Self = @This();
-
-    fn isBig(self: Self) bool {
-        return switch (self) {
-            .int => false,
-            .big => true,
-        };
-    }
-
-    fn deinit(self: *Self) void {
-        if (self.isBig()) {
-            self.big.deinit();
-        }
-    }
-};
+const BigNumber = i128;
 
 const Request = struct {
     method: []const u8,
-    number: Number,
+    number: BigNumber,
 
     const Self = @This();
-
-    fn deinit(self: *Self) void {
-        self.number.deinit();
-    }
 };
 
 const Response = struct {
@@ -64,8 +41,11 @@ const Response = struct {
 };
 
 fn callback(msg: []const u8, client: *const Client) !void {
-    var request: Request = try parseRequest(msg);
-    defer request.deinit();
+    const request: Request = parseRequest(msg) catch |err| {
+        log.err("parse error {}", .{err});
+        try client.write(malformed_request);
+        return;
+    };
 
     const prime = is_prime(request.number);
     const response = Response{
@@ -118,15 +98,17 @@ fn parseRequest(msg: []const u8) !Request {
     switch (number.?) {
         .integer => {
             log.info("got int number {d}", .{number.?.integer});
-            request.number = .{ .int = number.?.integer };
+            request.number = number.?.integer;
         },
         .float => {
             log.info("got float number {e}", .{number.?.float});
-            request.number = .{ .int = @intFromFloat(number.?.float) };
+            request.number = @intFromFloat(number.?.float);
         },
         .number_string => {
-            request.number = .{ .big = try big_int.Managed.init(allocator) };
-            try request.number.big.setString(10, number.?.number_string);
+            var big = try std.math.big.int.Managed.init(allocator);
+            defer big.deinit();
+            try big.setString(10, number.?.number_string);
+            request.number = try big.to(BigNumber);
         },
         else => {
             log.info("got number as {?any}", .{number});
@@ -137,26 +119,17 @@ fn parseRequest(msg: []const u8) !Request {
     return request;
 }
 
-fn is_prime(n: Number) bool {
-    switch (n) {
-        .int => |number| {
-            if (number <= 1) return false;
+fn is_prime(number: BigNumber) bool {
+    if (number <= 1) return false;
 
-            var prime = true;
-            var i: isize = 2;
-            while (i * i <= number) : (i += 1) {
-                if (@rem(number, i) == 0) {
-                    prime = false;
-                    break;
-                }
-            }
-
-            return prime;
-        },
-        // TODO: Calculate prime for big_int
-        .big => |_| {
-            n.big.dump();
-            return false;
-        },
+    var prime = true;
+    var i: isize = 2;
+    while (i * i <= number) : (i += 1) {
+        if (@rem(number, i) == 0) {
+            prime = false;
+            break;
+        }
     }
+
+    return prime;
 }
