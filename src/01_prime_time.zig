@@ -105,6 +105,7 @@ fn parseRequest(msg: []const u8) !Request {
             request.number = @intFromFloat(number.?.float);
         },
         .number_string => {
+            log.info("got number_string number {s}", .{number.?.number_string});
             var big = try std.math.big.int.Managed.init(allocator);
             defer big.deinit();
             try big.setString(10, number.?.number_string);
