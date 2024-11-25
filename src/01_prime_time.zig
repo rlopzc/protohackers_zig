@@ -26,7 +26,8 @@ pub fn main() !void {
 
 const malformed_request: []const u8 = "{}\n";
 
-const BigNumber = i128;
+// Unsupported modulo operations for bitwidths > 128 https://github.com/ziglang/zig/issues/1534
+const BigNumber = i200;
 
 const Request = struct {
     method: []const u8,
