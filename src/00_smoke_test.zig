@@ -14,11 +14,19 @@ pub fn main() !void {
             log.err("failed to accept client err={}", .{err});
             continue;
         };
-        const thread = try std.Thread.spawn(.{}, Client.run, .{ client, callback });
+        const thread = try std.Thread.spawn(.{}, Client.run, .{
+            client,
+            callback,
+            delimiterFinder,
+        });
         thread.detach();
     }
 }
 
 fn callback(msg: []const u8, client: *const Client) !void {
     try client.write(msg);
+}
+
+fn delimiterFinder(unprocessed: []u8) ?usize {
+    return std.mem.indexOfScalar(u8, unprocessed, '\n');
 }

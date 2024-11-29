@@ -19,15 +19,23 @@ pub fn main() !void {
             log.err("failed to accept client err={}", .{err});
             continue;
         };
-        const thread = try std.Thread.spawn(.{}, Client.run, .{ client, callback });
+        const thread = try std.Thread.spawn(.{}, Client.run, .{
+            client,
+            callback,
+            delimiterFinder,
+        });
         thread.detach();
     }
+}
+
+fn delimiterFinder(unprocessed: []u8) ?usize {
+    return std.mem.indexOfScalar(u8, unprocessed, '\n');
 }
 
 const malformed_request: []const u8 = "{}\n";
 
 // Unsupported modulo operations for bitwidths > 128 https://github.com/ziglang/zig/issues/1534
-const BigNumber = i200;
+const BigNumber = i128;
 
 const Request = struct {
     method: []const u8,
