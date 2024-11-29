@@ -2,7 +2,7 @@ const std = @import("std");
 const log = std.log.scoped(.client);
 const net = std.net;
 const mem = std.mem;
-const Reader = @import("./buffered_reader.zig").Reader;
+const Reader = @import("buffered_reader.zig").Reader;
 
 pub const Client = struct {
     socket: net.Server.Connection,
@@ -29,7 +29,7 @@ pub const Client = struct {
     pub fn run(
         self: Self,
         callback_fn: callback,
-        delimiterFinder: Reader.DelimiterFinder,
+        delimiterFinderFn: Reader.DelimiterFinder,
     ) !void {
         defer self.deinit();
         log.info("client {} connected", .{self.socket.address});
@@ -39,7 +39,7 @@ pub const Client = struct {
             .pos = 0,
             .buf = &buf,
             .stream = self.socket.stream,
-            .delimiterFinder = delimiterFinder,
+            .delimiterFinderFn = delimiterFinderFn,
         };
 
         while (true) {

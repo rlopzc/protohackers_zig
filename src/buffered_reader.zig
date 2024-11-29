@@ -54,7 +54,7 @@ pub const Reader = struct {
         const unprocessed = buf[start..pos];
 
         // search index of the delimiter
-        const delimiter_index = self.delimiterFinder(unprocessed);
+        const delimiter_index = self.delimiterFinderFn(unprocessed);
         if (delimiter_index == null) {
             self.ensureSpace(128) catch unreachable;
             return null;
