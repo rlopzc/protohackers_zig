@@ -30,7 +30,7 @@ pub fn main() !void {
 // character: you'll know where one message ends and the next starts because
 // they are always 9 bytes.
 fn delimiterFinder(unprocessed: []u8) ?usize {
-    if (unprocessed.len < 8) {
+    if (unprocessed.len < 9) {
         return null;
     } else {
         return unprocessed.len;
