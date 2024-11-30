@@ -63,7 +63,8 @@ fn callback(msg: []const u8, client: *const Client) !void {
     std.debug.print("op={} first={d} second={d}\n", .{ op, first, second });
 
     switch (op) {
-        'I' => {
+        // 'I' in decimal
+        73 => {
             // An insert message lets the client insert a timestamped price.
             // The message format is:
             // Byte:  |  0  |  1     2     3     4  |  5     6     7     8  |
@@ -78,9 +79,12 @@ fn callback(msg: []const u8, client: *const Client) !void {
             }
             std.debug.print("{any}", .{prices});
         },
-        'Q' => {
+        // 'Q' in decimal
+        81 => {
             try client.write("kaka");
         },
-        else => {},
+        else => {
+            log.debug("unknown op={}", .{op});
+        },
     }
 }
