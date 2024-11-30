@@ -29,7 +29,11 @@ pub fn main() !void {
 }
 
 fn delimiterFinder(unprocessed: []u8) ?usize {
-    return std.mem.indexOfScalar(u8, unprocessed, '\n');
+    const index = std.mem.indexOfScalar(u8, unprocessed, '\n');
+    if (index != null) {
+        return index.? + 1;
+    }
+    return null;
 }
 
 const malformed_request: []const u8 = "{}\n";
