@@ -23,10 +23,13 @@ pub fn main() !void {
     }
 }
 
-fn callback(msg: []const u8, client: *const Client) !void {
-    try client.write(msg);
+fn delimiterFinder(unprocessed: []u8) ?usize {
+    if (unprocessed.len != 0) {
+        return unprocessed.len;
+    }
+    return null;
 }
 
-fn delimiterFinder(unprocessed: []u8) ?usize {
-    return std.mem.indexOfScalar(u8, unprocessed, '\n');
+fn callback(msg: []const u8, client: *const Client) !void {
+    try client.write(msg);
 }
