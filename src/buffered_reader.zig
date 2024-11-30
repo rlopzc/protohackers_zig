@@ -60,11 +60,10 @@ pub const Reader = struct {
             return null;
         }
 
-        const delimiter_pos = delimiter_index.? + 1;
-        std.debug.assert(delimiter_pos <= unprocessed.len);
-        self.start = start + delimiter_pos;
+        std.debug.assert(delimiter_index.? <= unprocessed.len);
+        self.start = start + delimiter_index.?;
 
-        return unprocessed[0..delimiter_pos];
+        return unprocessed[0..delimiter_index.?];
     }
 
     fn ensureSpace(self: *Self, space: usize) error{BufferTooSmall}!void {
