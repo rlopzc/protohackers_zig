@@ -38,12 +38,12 @@ fn delimiterFinder(unprocessed: []u8) ?usize {
 }
 
 fn callback(msg: []const u8, client: *const Client) !void {
-    std.debug.print("msg={s}", .{msg});
+    std.debug.print("msg={s}\nbin={b}\nhex={x}\n", .{ msg, msg, msg });
     const op: u8 = msg[0];
-    const timestamp: i32 = mem.readInt(i32, &msg[1..4], .big);
-    const price: i32 = mem.readInt(i32, &msg[4..8], .big);
+    const timestamp: i32 = mem.readInt(i32, msg[1..5], .big);
+    const price: i32 = mem.readInt(i32, msg[5..9], .big);
 
-    std.debug.print("op={s} timestamp={d} price={d}", .{ op, timestamp, price });
+    std.debug.print("op={} timestamp={d} price={d}\n", .{ op, timestamp, price });
 
     try client.write(msg);
 }
