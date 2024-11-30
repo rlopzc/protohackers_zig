@@ -61,6 +61,7 @@ pub const Reader = struct {
         }
 
         const delimiter_pos = delimiter_index.? + 1;
+        std.debug.assert(delimiter_pos <= unprocessed.len);
         self.start = start + delimiter_pos;
 
         return unprocessed[0..delimiter_pos];
