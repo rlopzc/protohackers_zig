@@ -33,7 +33,7 @@ fn delimiterFinder(unprocessed: []u8) ?usize {
     if (unprocessed.len < 8) {
         return null;
     } else {
-        return 8;
+        return 9;
     }
 }
 
