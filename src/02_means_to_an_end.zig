@@ -77,7 +77,11 @@ fn callback(msg: []const u8, client: *const Client) !void {
             if (!value.found_existing) {
                 value.value_ptr.* = second;
             }
-            std.debug.print("{any}", .{prices});
+            var hash_iterator = prices.iterator();
+            while (hash_iterator.next()) |kv| {
+                std.debug.print("{d} => {d}, ", .{ kv.key_ptr.*, kv.value_ptr.* });
+            }
+            std.debug.print("\n", .{});
         },
         // 'Q' in decimal
         81 => {
