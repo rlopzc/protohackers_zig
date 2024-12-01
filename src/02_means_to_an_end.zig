@@ -101,7 +101,7 @@ fn callback(msg: []const u8, client: *const Client) !void {
                 return;
             }
 
-            var count: i32 = undefined;
+            var count: i32 = 0;
             var total_price: i32 = 0;
             var iterator = prices.iterator();
             while (iterator.next()) |kv| {
