@@ -85,7 +85,36 @@ fn callback(msg: []const u8, client: *const Client) !void {
         },
         // 'Q' in decimal
         81 => {
-            try client.write("kaka");
+            // A query message lets the client query the average price over a given time period.
+            // The message format is:
+            // Byte:  |  0  |  1     2     3     4  |  5     6     7     8  |
+            // Type:  |char |         int32         |         int32         |
+            // Value: | 'Q' |        mintime        |        maxtime        |
+            //
+            // The first int32 is mintime, the earliest timestamp of the period.
+            // The second int32 is maxtime, the latest timestamp of the period.
+            //
+            // The server must compute the mean of the inserted prices with timestamps T, mintime <= T <= maxtime (i.e. timestamps in the closed interval [mintime, maxtime]). If the mean is not an integer, it is acceptable to round either up or down, at the server's discretion.
+            // The server must then send the mean to the client as a single int32.
+            if (first > second) {
+                try client.write("0");
+                return;
+            }
+
+            var count: i32 = undefined;
+            var total_price: i32 = 0;
+            var iterator = prices.iterator();
+            while (iterator.next()) |kv| {
+                const key = kv.key_ptr.*;
+                if (first <= key and key <= second) {
+                    count += 1;
+                    total_price += kv.value_ptr.*;
+                }
+            }
+            const mean: i32 = @divTrunc(total_price, count);
+            var response: [@sizeOf(i32)]u8 = undefined;
+            _ = try std.fmt.bufPrint(&response, "{d}", .{mean});
+            try client.write(response[0..]);
         },
         else => {
             log.debug("unknown op={}", .{op});
