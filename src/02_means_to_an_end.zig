@@ -116,7 +116,7 @@ fn callback(msg: []const u8, client: *const Client) !void {
 
             var buf: [4]u8 = undefined;
             mem.writeInt(i32, &buf, mean, .big);
-            try client.write(buf);
+            try client.write(&buf);
         },
         else => {
             log.debug("unknown op={}", .{op});
