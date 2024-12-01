@@ -9,6 +9,9 @@ pub const Client = struct {
 
     const Self = @This();
     const callback = fn (msg: []const u8, client: *const Self) anyerror!void;
+    pub const Error = error{
+        CloseConn,
+    };
 
     pub fn new(socket: net.Server.Connection) !Self {
         return .{

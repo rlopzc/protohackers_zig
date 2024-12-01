@@ -118,6 +118,7 @@ fn callback(msg: []const u8, client: *const Client) !void {
             const response = try std.fmt.bufPrint(&buf, "{d}", .{mean});
 
             try client.write(response);
+            return Client.Error.CloseConn;
         },
         else => {
             log.debug("unknown op={}", .{op});
