@@ -113,9 +113,9 @@ fn callback(msg: []const u8, client: *const Client) !void {
                 }
             }
             const mean: i32 = @divTrunc(total_price, count);
-            var response: [@sizeOf(i32)]u8 = undefined;
-            _ = try std.fmt.bufPrint(&response, "{d}", .{mean});
-            try client.write(response[0..]);
+            var buf: [@sizeOf(i32)]u8 = undefined;
+            const response = try std.fmt.bufPrint(&buf, "{d}", .{mean});
+            try client.write(response);
         },
         else => {
             log.debug("unknown op={}", .{op});
