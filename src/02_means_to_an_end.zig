@@ -109,12 +109,14 @@ fn callback(msg: []const u8, client: *const Client) !void {
                 if (first <= key and key <= second) {
                     count += 1;
                     total_price += kv.value_ptr.*;
-                    std.debug.print("count={d} total_price={d}\n", .{ count, total_price });
                 }
             }
             const mean: i32 = @divTrunc(total_price, count);
+            std.debug.print("count={d} total_price={d} mean={d}\n", .{ count, total_price, mean });
+
             var buf: [@sizeOf(i32)]u8 = undefined;
             const response = try std.fmt.bufPrint(&buf, "{d}", .{mean});
+
             try client.write(response);
         },
         else => {
