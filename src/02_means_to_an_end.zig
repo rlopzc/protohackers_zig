@@ -97,8 +97,8 @@ fn callback(msg: []const u8, client: *const Client) !void {
             // The server must compute the mean of the inserted prices with timestamps T, mintime <= T <= maxtime (i.e. timestamps in the closed interval [mintime, maxtime]). If the mean is not an integer, it is acceptable to round either up or down, at the server's discretion.
             // The server must then send the mean to the client as a single int32.
             if (first > second) {
-                try client.write("0");
-                return;
+                try client.write(&mem.zeroes([4]u8));
+                return Client.Error.CloseConn;
             }
 
             var count: i32 = 0;
