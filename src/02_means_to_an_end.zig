@@ -46,7 +46,6 @@ fn delimiterFinder(unprocessed: []u8) ?usize {
 // TODO: shared memory between threads.
 // Lock mechanism?
 fn callback(msg: []const u8, client: *const Client) !void {
-    std.debug.print("bin={b}\nhex={x}\n", .{ msg, msg });
     // The first byte of a message is a character indicating its type. This will be
     // an ASCII uppercase 'I' or 'Q' character, indicating whether the message
     // inserts or queries prices, respectively.
@@ -111,6 +110,11 @@ fn callback(msg: []const u8, client: *const Client) !void {
                     total_price += kv.value_ptr.*;
                 }
             }
+            if (count == 0) {
+                try client.write(&mem.zeroes([4]u8));
+                return Client.Error.CloseConn;
+            }
+
             const mean: i32 = @divTrunc(total_price, count);
             std.debug.print("count={d} total_price={d} mean={d}\n", .{ count, total_price, mean });
 
