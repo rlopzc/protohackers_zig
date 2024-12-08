@@ -3,9 +3,9 @@ const log = std.log.scoped(.prime_time);
 const net = std.net;
 const json = std.json;
 
-const TcpServer = @import("tcp_server.zig").TcpServer;
-const Client = @import("client.zig").Client;
-const Runner = @import("runner.zig").Runner;
+const TcpServer = @import("../tcp_server.zig").TcpServer;
+const Client = @import("../client.zig").Client;
+const Runner = @import("../runner.zig").Runner;
 
 var gpa = std.heap.GeneralPurposeAllocator(.{}){};
 const allocator = gpa.allocator();

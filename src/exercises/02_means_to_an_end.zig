@@ -3,9 +3,9 @@ const log = std.log.scoped(.smoke_test);
 const net = std.net;
 const mem = std.mem;
 
-const TcpServer = @import("tcp_server.zig").TcpServer;
-const Client = @import("client.zig").Client;
-const Runner = @import("runner.zig").Runner;
+const TcpServer = @import("../tcp_server.zig").TcpServer;
+const Client = @import("../client.zig").Client;
+const Runner = @import("../runner.zig").Runner;
 
 var prices: std.HashMap(i32, i32, std.hash_map.AutoContext(i32), std.hash_map.default_max_load_percentage) = undefined;
 

@@ -5,9 +5,9 @@ const process = std.process;
 
 const arg_error_msg = "missing argument. specify test to run. i.e. 00, 01, ...";
 
-const smoke_test = @import("00_smoke_test.zig");
-const prime_time = @import("01_prime_time.zig");
-const means_to_an_end = @import("02_means_to_an_end.zig");
+const smoke_test = @import("exercises/00_smoke_test.zig");
+const prime_time = @import("exercises/01_prime_time.zig");
+const means_to_an_end = @import("exercises/02_means_to_an_end.zig");
 
 pub fn main() !void {
     var gpa = std.heap.GeneralPurposeAllocator(.{}){};
