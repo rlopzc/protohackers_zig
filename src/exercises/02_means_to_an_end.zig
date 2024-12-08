@@ -80,6 +80,7 @@ const MeansToAnEndRunner = struct {
                 // The first int32 is the timestamp, in seconds since 00:00, 1st Jan 1970.
                 // The second int32 is the price, in pennies, of this client's asset, at the given timestamp.
                 const value = try prices.getOrPut(first);
+                std.debug.print("value={any}\n", .{value});
                 if (!value.found_existing) {
                     value.value_ptr.* = second;
                 }
