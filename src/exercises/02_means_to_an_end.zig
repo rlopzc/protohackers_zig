@@ -52,6 +52,7 @@ const MeansToAnEndRunner = struct {
 
     fn callback(ptr: *anyopaque, msg: []const u8, client: *const Client) !void {
         const self: *MeansToAnEndRunner = @ptrCast(@alignCast(ptr));
+        std.debug.print("self={any}", .{self.*});
         var prices = self.prices;
         // The first byte of a message is a character indicating its type. This will be
         // an ASCII uppercase 'I' or 'Q' character, indicating whether the message
