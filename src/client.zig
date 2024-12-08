@@ -2,13 +2,14 @@ const std = @import("std");
 const log = std.log.scoped(.client);
 const net = std.net;
 const mem = std.mem;
+
 const Reader = @import("buffered_reader.zig").Reader;
+const Runner = @import("runner.zig").Runner;
 
 pub const Client = struct {
     socket: net.Server.Connection,
 
     const Self = @This();
-    const callback = fn (msg: []const u8, client: *const Self) anyerror!void;
     pub const Error = error{
         CloseConn,
     };
@@ -29,11 +30,7 @@ pub const Client = struct {
         self.socket.stream.close();
     }
 
-    pub fn run(
-        self: Self,
-        callback_fn: callback,
-        delimiterFinderFn: Reader.DelimiterFinder,
-    ) !void {
+    pub fn run(self: Self, runner: Runner) !void {
         defer self.deinit();
         log.info("client {} connected", .{self.socket.address});
 
@@ -42,14 +39,14 @@ pub const Client = struct {
             .pos = 0,
             .buf = &buf,
             .stream = self.socket.stream,
-            .delimiterFinderFn = delimiterFinderFn,
+            .delimiterFinderFn = runner.delimiterFinderFn,
         };
 
         while (true) {
             const msg = reader.readMessage() catch break;
             log.info("client={} received={}", .{ self.socket.address, std.zig.fmtEscapes(msg) });
 
-            callback_fn(msg, &self) catch |err| switch (err) {
+            runner.callback(msg, &self) catch |err| switch (err) {
                 else => {
                     break;
                 },

@@ -5,6 +5,7 @@ const json = std.json;
 
 const TcpServer = @import("tcp_server.zig").TcpServer;
 const Client = @import("client.zig").Client;
+const Runner = @import("runner.zig").Runner;
 
 var gpa = std.heap.GeneralPurposeAllocator(.{}){};
 const allocator = gpa.allocator();
@@ -19,22 +20,56 @@ pub fn main() !void {
             log.err("failed to accept client err={}", .{err});
             continue;
         };
+
+        var prime_time = PrimeTimeRunner{};
         const thread = try std.Thread.spawn(.{}, Client.run, .{
             client,
-            callback,
-            delimiterFinder,
+            prime_time.runner(),
         });
         thread.detach();
     }
 }
 
-fn delimiterFinder(unprocessed: []u8) ?usize {
-    const index = std.mem.indexOfScalar(u8, unprocessed, '\n');
-    if (index != null) {
-        return index.? + 1;
+const PrimeTimeRunner = struct {
+    fn delimiterFinder(unprocessed: []u8) ?usize {
+        const index = std.mem.indexOfScalar(u8, unprocessed, '\n');
+        if (index != null) {
+            return index.? + 1;
+        }
+        return null;
     }
-    return null;
-}
+
+    fn callback(_: *const anyopaque, msg: []const u8, client: *const Client) !void {
+        // const self: *SmokeTestRunner = @ptrCast(@alignCast(ptr));
+        const request: Request = parseRequest(msg) catch |err| {
+            log.err("parse error {}", .{err});
+            try client.write(malformed_request);
+            return;
+        };
+
+        const prime = is_prime(request.number);
+        const response = Response{
+            .method = request.method,
+            .prime = prime,
+        };
+
+        var buf = std.ArrayList(u8).init(gpa.allocator());
+        defer buf.deinit();
+
+        // https://www.openmymind.net/Writing-Json-To-A-Custom-Output-in-Zig/
+        try json.stringify(response, .{}, buf.writer());
+        try buf.append('\n');
+        try client.write(buf.items);
+    }
+
+    fn runner(self: *PrimeTimeRunner) Runner {
+        return .{
+            .ptr = self,
+            .callbackFn = callback,
+            .delimiterFinderFn = delimiterFinder,
+        };
+    }
+};
 
 const malformed_request: []const u8 = "{}\n";
 
@@ -52,28 +87,6 @@ const Response = struct {
     method: []const u8,
     prime: bool,
 };
-
-fn callback(msg: []const u8, client: *const Client) !void {
-    const request: Request = parseRequest(msg) catch |err| {
-        log.err("parse error {}", .{err});
-        try client.write(malformed_request);
-        return;
-    };
-
-    const prime = is_prime(request.number);
-    const response = Response{
-        .method = request.method,
-        .prime = prime,
-    };
-
-    var buf = std.ArrayList(u8).init(gpa.allocator());
-    defer buf.deinit();
-
-    // https://www.openmymind.net/Writing-Json-To-A-Custom-Output-in-Zig/
-    try json.stringify(response, .{}, buf.writer());
-    try buf.append('\n');
-    try client.write(buf.items);
-}
 
 const PrimeError = error{
     ParseError,

@@ -4,6 +4,7 @@ const net = std.net;
 
 const TcpServer = @import("tcp_server.zig").TcpServer;
 const Client = @import("client.zig").Client;
+const Runner = @import("runner.zig").Runner;
 
 pub fn main() !void {
     var server = TcpServer.start(3000) catch std.process.exit(1);
@@ -14,22 +15,34 @@ pub fn main() !void {
             log.err("failed to accept client err={}", .{err});
             continue;
         };
+
+        var smoke_test = SmokeTestRunner{};
         const thread = try std.Thread.spawn(.{}, Client.run, .{
             client,
-            callback,
-            delimiterFinder,
+            smoke_test.runner(),
         });
         thread.detach();
     }
 }
 
-fn delimiterFinder(unprocessed: []u8) ?usize {
-    if (unprocessed.len != 0) {
-        return unprocessed.len;
+const SmokeTestRunner = struct {
+    fn delimiterFinder(unprocessed: []u8) ?usize {
+        if (unprocessed.len != 0) {
+            return unprocessed.len;
+        }
+        return null;
     }
-    return null;
-}
 
-fn callback(msg: []const u8, client: *const Client) !void {
-    try client.write(msg);
-}
+    fn callback(_: *const anyopaque, msg: []const u8, client: *const Client) !void {
+        // const self: *SmokeTestRunner = @ptrCast(@alignCast(ptr));
+        try client.write(msg);
+    }
+
+    fn runner(self: *SmokeTestRunner) Runner {
+        return .{
+            .ptr = self,
+            .callbackFn = callback,
+            .delimiterFinderFn = delimiterFinder,
+        };
+    }
+};
