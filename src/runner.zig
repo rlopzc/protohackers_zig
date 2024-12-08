@@ -9,8 +9,13 @@ pub const Runner = struct {
     ptr: *anyopaque,
     callbackFn: *const fn (ptr: *anyopaque, msg: []const u8, client: *const Client) anyerror!void,
     delimiterFinderFn: Reader.DelimiterFinder,
+    deinitFn: *const fn (ptr: *anyopaque) void,
 
     pub fn callback(self: Runner, msg: []const u8, client: *const Client) !void {
         return self.callbackFn(self.ptr, msg, client);
+    }
+
+    pub fn deinit(self: Runner) void {
+        return self.deinitFn(self.ptr);
     }
 };

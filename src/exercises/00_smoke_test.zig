@@ -33,16 +33,19 @@ const SmokeTestRunner = struct {
         return null;
     }
 
-    fn callback(_: *const anyopaque, msg: []const u8, client: *const Client) !void {
+    fn callback(_: *anyopaque, msg: []const u8, client: *const Client) !void {
         // const self: *SmokeTestRunner = @ptrCast(@alignCast(ptr));
         try client.write(msg);
     }
+
+    fn deinit(_: *anyopaque) void {}
 
     fn runner(self: *SmokeTestRunner) Runner {
         return .{
             .ptr = self,
             .callbackFn = callback,
             .delimiterFinderFn = delimiterFinder,
+            .deinitFn = deinit,
         };
     }
 };

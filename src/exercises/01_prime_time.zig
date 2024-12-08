@@ -39,7 +39,7 @@ const PrimeTimeRunner = struct {
         return null;
     }
 
-    fn callback(_: *const anyopaque, msg: []const u8, client: *const Client) !void {
+    fn callback(_: *anyopaque, msg: []const u8, client: *const Client) !void {
         // const self: *SmokeTestRunner = @ptrCast(@alignCast(ptr));
         const request: Request = parseRequest(msg) catch |err| {
             log.err("parse error {}", .{err});
@@ -62,11 +62,14 @@ const PrimeTimeRunner = struct {
         try client.write(buf.items);
     }
 
+    fn deinit(_: *anyopaque) void {}
+
     fn runner(self: *PrimeTimeRunner) Runner {
         return .{
             .ptr = self,
             .callbackFn = callback,
             .delimiterFinderFn = delimiterFinder,
+            .deinitFn = deinit,
         };
     }
 };

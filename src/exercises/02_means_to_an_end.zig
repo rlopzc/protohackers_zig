@@ -7,15 +7,11 @@ const TcpServer = @import("../tcp_server.zig").TcpServer;
 const Client = @import("../client.zig").Client;
 const Runner = @import("../runner.zig").Runner;
 
-var prices: std.HashMap(i32, i32, std.hash_map.AutoContext(i32), std.hash_map.default_max_load_percentage) = undefined;
-
 pub fn main() !void {
     var server = TcpServer.start(3000) catch std.process.exit(1);
     defer server.deinit();
 
     var gpa = std.heap.GeneralPurposeAllocator(.{}){};
-    prices = std.AutoHashMap(i32, i32).init(gpa.allocator());
-    defer prices.deinit();
 
     while (true) {
         const client = server.accept() catch |err| {
@@ -23,7 +19,7 @@ pub fn main() !void {
             continue;
         };
 
-        var means_to_an_end = MeansToAnEndRunner{};
+        var means_to_an_end = MeansToAnEndRunner.init(gpa.allocator());
         const thread = try std.Thread.spawn(.{}, Client.run, .{
             client,
             means_to_an_end.runner(),
@@ -33,6 +29,14 @@ pub fn main() !void {
 }
 
 const MeansToAnEndRunner = struct {
+    prices: std.HashMap(i32, i32, std.hash_map.AutoContext(i32), std.hash_map.default_max_load_percentage),
+
+    fn init(allocator: mem.Allocator) MeansToAnEndRunner {
+        return .{
+            .prices = std.AutoHashMap(i32, i32).init(allocator),
+        };
+    }
+
     // To keep bandwidth usage down, a simple binary format has been specified.
     // Each message from a client is 9 bytes long. Clients can send multiple
     // messages per connection. Messages are not delimited by newlines or any other
@@ -46,9 +50,9 @@ const MeansToAnEndRunner = struct {
         }
     }
 
-    // TODO: shared memory between threads.
-    // Lock mechanism?
-    fn callback(_: *const anyopaque, msg: []const u8, client: *const Client) !void {
+    fn callback(ptr: *anyopaque, msg: []const u8, client: *const Client) !void {
+        const self: *MeansToAnEndRunner = @ptrCast(@alignCast(ptr));
+        var prices = self.prices;
         // The first byte of a message is a character indicating its type. This will be
         // an ASCII uppercase 'I' or 'Q' character, indicating whether the message
         // inserts or queries prices, respectively.
@@ -131,11 +135,17 @@ const MeansToAnEndRunner = struct {
         }
     }
 
+    fn deinit(ptr: *anyopaque) void {
+        const self: *MeansToAnEndRunner = @ptrCast(@alignCast(ptr));
+        self.prices.deinit();
+    }
+
     fn runner(self: *MeansToAnEndRunner) Runner {
         return .{
             .ptr = self,
             .callbackFn = callback,
             .delimiterFinderFn = delimiterFinder,
+            .deinitFn = deinit,
         };
     }
 };
