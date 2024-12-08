@@ -52,7 +52,7 @@ const MeansToAnEndRunner = struct {
 
     fn callback(ptr: *anyopaque, msg: []const u8, client: *const Client) !void {
         const self: *MeansToAnEndRunner = @ptrCast(@alignCast(ptr));
-        std.debug.print("self={any}", .{self.*});
+        std.debug.print("self={any}\n", .{self.*});
         var prices = self.prices;
         // The first byte of a message is a character indicating its type. This will be
         // an ASCII uppercase 'I' or 'Q' character, indicating whether the message
@@ -82,6 +82,7 @@ const MeansToAnEndRunner = struct {
                 // The second int32 is the price, in pennies, of this client's asset, at the given timestamp.
                 const value = try prices.getOrPut(first);
                 std.debug.print("value={any}\n", .{value});
+                // TODO: seems that values are just being inserted but they are not carried between ops
                 if (!value.found_existing) {
                     value.value_ptr.* = second;
                 }
