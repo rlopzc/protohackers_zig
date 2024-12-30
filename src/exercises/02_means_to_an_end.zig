@@ -53,7 +53,6 @@ const MeansToAnEndRunner = struct {
     fn callback(ptr: *anyopaque, msg: []const u8, client: *const Client) !void {
         const self: *MeansToAnEndRunner = @ptrCast(@alignCast(ptr));
         std.debug.print("self={any}\n", .{self.*});
-        var prices = self.prices;
         // The first byte of a message is a character indicating its type. This will be
         // an ASCII uppercase 'I' or 'Q' character, indicating whether the message
         // inserts or queries prices, respectively.
@@ -80,13 +79,13 @@ const MeansToAnEndRunner = struct {
                 //
                 // The first int32 is the timestamp, in seconds since 00:00, 1st Jan 1970.
                 // The second int32 is the price, in pennies, of this client's asset, at the given timestamp.
-                const value = try prices.getOrPut(first);
+                const value = try self.prices.getOrPut(first);
                 std.debug.print("value={any}\n", .{value});
                 // TODO: seems that values are just being inserted but they are not carried between ops
                 if (!value.found_existing) {
                     value.value_ptr.* = second;
                 }
-                var hash_iterator = prices.iterator();
+                var hash_iterator = self.prices.iterator();
                 while (hash_iterator.next()) |kv| {
                     std.debug.print("{d} => {d}, ", .{ kv.key_ptr.*, kv.value_ptr.* });
                 }
@@ -112,7 +111,7 @@ const MeansToAnEndRunner = struct {
 
                 var count: i32 = 0;
                 var total_price: i32 = 0;
-                var iterator = prices.iterator();
+                var iterator = self.prices.iterator();
                 while (iterator.next()) |kv| {
                     const key = kv.key_ptr.*;
                     if (first <= key and key <= second) {
