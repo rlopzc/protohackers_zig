@@ -32,10 +32,8 @@ pub const Client = struct {
 
     pub fn run(self: Self, runner: Runner) !void {
         log.info("client {} connected", .{self.socket.address});
-        defer {
-            self.deinit();
-            runner.deinit();
-        }
+        defer self.deinit();
+        defer runner.deinit();
 
         var buf: [4096]u8 = undefined;
         var reader = Reader{
