@@ -60,9 +60,10 @@ pub const Reader = struct {
             return null;
         }
 
-        std.debug.assert(delimiter_index.? <= unprocessed.len);
+        // Position start at the start of the next message. We might not have
+        // any data for this next message, but we know that it'll start where
+        // our last message ended.
         self.start += delimiter_index.?;
-
         return unprocessed[0..delimiter_index.?];
     }
 
