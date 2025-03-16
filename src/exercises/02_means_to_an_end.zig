@@ -29,17 +29,19 @@ pub fn main() !void {
 }
 
 const MeansToAnEndRunner = struct {
+    allocator: mem.Allocator,
     prices: std.HashMap(i32, i32, std.hash_map.AutoContext(i32), std.hash_map.default_max_load_percentage),
 
     fn init(allocator: mem.Allocator) MeansToAnEndRunner {
         return .{
+            .allocator = allocator,
             .prices = std.AutoHashMap(i32, i32).init(allocator),
         };
     }
 
     fn deinit(ptr: *anyopaque) void {
         const self: *MeansToAnEndRunner = @ptrCast(@alignCast(ptr));
-        self.prices.deinit();
+        defer self.prices.deinit();
     }
 
     // To keep bandwidth usage down, a simple binary format has been specified.
