@@ -37,6 +37,11 @@ const MeansToAnEndRunner = struct {
         };
     }
 
+    fn deinit(ptr: *anyopaque) void {
+        const self: *MeansToAnEndRunner = @ptrCast(@alignCast(ptr));
+        self.prices.deinit();
+    }
+
     // To keep bandwidth usage down, a simple binary format has been specified.
     // Each message from a client is 9 bytes long. Clients can send multiple
     // messages per connection. Messages are not delimited by newlines or any other
@@ -83,8 +88,9 @@ const MeansToAnEndRunner = struct {
                 if (!value.found_existing) {
                     value.value_ptr.* = second;
                 }
-                var hash_iterator = prices.iterator();
+
                 std.debug.print("Hash:\n", .{});
+                var hash_iterator = prices.iterator();
                 while (hash_iterator.next()) |kv| {
                     std.debug.print("{d} => {d}, ", .{ kv.key_ptr.*, kv.value_ptr.* });
                 }
@@ -131,14 +137,10 @@ const MeansToAnEndRunner = struct {
                 try client.write(&buf);
             },
             else => {
-                log.debug("unknown op={}", .{op});
+                log.debug("unknown op={} closing conn", .{op});
+                return Client.Error.CloseConn;
             },
         }
-    }
-
-    fn deinit(ptr: *anyopaque) void {
-        const self: *MeansToAnEndRunner = @ptrCast(@alignCast(ptr));
-        self.prices.deinit();
     }
 
     fn runner(self: *MeansToAnEndRunner) Runner {
