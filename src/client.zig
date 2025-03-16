@@ -44,10 +44,18 @@ pub const Client = struct {
         };
 
         while (true) {
-            const msg = reader.readMessage() catch break;
+            const msg = reader.readMessage() catch |err| switch (err) {
+                else => {
+                    log.info("error reading message", .{});
+                    continue;
+                },
+            };
             log.info("client={} received={}", .{ self.socket.address, std.zig.fmtEscapes(msg) });
 
             runner.callback(msg, &self) catch |err| switch (err) {
+                .CloseConn => {
+                    break;
+                },
                 else => {
                     break;
                 },
