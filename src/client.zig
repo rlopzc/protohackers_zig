@@ -53,9 +53,6 @@ pub const Client = struct {
             log.info("client={} received={}", .{ self.socket.address, std.zig.fmtEscapes(msg) });
 
             runner.callback(msg, &self) catch |err| switch (err) {
-                .CloseConn => {
-                    break;
-                },
                 else => {
                     break;
                 },
