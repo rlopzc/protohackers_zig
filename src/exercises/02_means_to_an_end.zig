@@ -49,11 +49,12 @@ const MeansToAnEndRunner = struct {
     // messages per connection. Messages are not delimited by newlines or any other
     // character: you'll know where one message ends and the next starts because
     // they are always 9 bytes.
-    fn delimiterFinder(unprocessed: []u8) ?usize {
+    // TODO: here is the bug? "Clients can send multiple messages per connection".
+    fn delimiterFinder(start: usize, unprocessed: []u8) ?usize {
         if (unprocessed.len < 9) {
             return null;
         } else {
-            return unprocessed.len;
+            return start + 9;
         }
     }
 

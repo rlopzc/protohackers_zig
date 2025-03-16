@@ -11,7 +11,7 @@ pub const Reader = struct {
     delimiterFinderFn: DelimiterFinder,
 
     const Self = @This();
-    pub const DelimiterFinder = *const fn (unprocessed: []u8) ?usize;
+    pub const DelimiterFinder = *const fn (start: usize, unprocessed: []u8) ?usize;
 
     pub fn readMessage(self: *Self) ![]u8 {
         var buf = self.buf;
@@ -54,14 +54,14 @@ pub const Reader = struct {
         const unprocessed = buf[start..pos];
 
         // search index of the delimiter
-        const delimiter_index = self.delimiterFinderFn(unprocessed);
+        const delimiter_index = self.delimiterFinderFn(start, unprocessed);
         if (delimiter_index == null) {
             self.ensureSpace(128) catch unreachable;
             return null;
         }
 
         std.debug.assert(delimiter_index.? <= unprocessed.len);
-        self.start = start + delimiter_index.?;
+        self.start += delimiter_index.?;
 
         return unprocessed[0..delimiter_index.?];
     }
@@ -79,8 +79,7 @@ pub const Reader = struct {
             return;
         }
 
-        const pos = self.pos;
-        const unprocessed = buf[start..pos];
+        const unprocessed = buf[start..self.pos];
         std.mem.copyForwards(u8, buf[0..unprocessed.len], unprocessed);
 
         self.start = 0;

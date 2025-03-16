@@ -26,7 +26,7 @@ pub fn main() !void {
 }
 
 const SmokeTestRunner = struct {
-    fn delimiterFinder(unprocessed: []u8) ?usize {
+    fn delimiterFinder(_: usize, unprocessed: []u8) ?usize {
         if (unprocessed.len != 0) {
             return unprocessed.len;
         }
