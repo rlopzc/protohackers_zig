@@ -1,0 +1,17 @@
+10: Voracious Code Storage
+
+Voracious Code Storage is a version control system accessed over the Internet. Clients can insert and retrieve text files. Each revision of a file is identified by its filename and a revision number.
+
+Your job is to implement a VCS server.
+
+The only known implementation has been lost, apart from a trial copy that remains available at vcs.protohackers.com on port 30307, which you may like to experiment with as part of your reverse engineering effort. The trial copy has the following limitations:
+
+    it is very slow
+    there is a low limit on maximum file size
+    each session gets its own private temporary storage, instead of a shared global persistent storage
+
+Your server must not have these limitations.
+
+Sadly nobody knows how the protocol works, no client implementation exists, and no documentation is available.
+
+Good luck!

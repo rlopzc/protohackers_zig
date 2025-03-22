@@ -1,0 +1,371 @@
+11: Pest Control
+
+Hi! This will be the last problem for a while. If you want to get notified about new problems in the future, enable "Receive emails about Protohackers" in your profile settings. Thanks for taking part in Protohackers, I hope you have enjoyed it :).
+
+To control animal populations across a number of different sites, we need you to make a server that will receive reports of animal populations, compare to the desired population range for each species at that site, and advise the relevant authority to instate policies to cull or conserve particular species as appropriate.
+
+Clients will connect to your server over TCP and provide the observations from site visits, listing the total population count for each observed species.
+
+Your server will connect to the Authority Server, also over TCP, dial the given site, receive the desired population range for each species that is controlled at that site, and then send instructions to create and delete population control policies, according to the observed populations from the most recent site visit.
+
+You can connect to the Authority Server at pestcontrol.protohackers.com on TCP port 20547, over both IPv4 and IPv6.
+Protocol
+Data types
+
+The protocol uses a binary data format, with the following primitive types:
+u32
+
+An unsigned 32-bit integer transmitted in network byte-order (big endian).
+
+Examples:
+
+Type | Hex data    | Value
+-------------------------------
+u32  | 00 00 00 20 |         32
+u32  | 00 00 12 45 |       4677
+u32  | a6 a9 b5 67 | 2796139879
+
+str
+
+A string of characters in a length-prefixed format. A str is transmitted as a single u32 containing the string's length, followed by that many bytes of ASCII character codes.
+
+It is an error for the string's specified length to go beyond the length of the containing message.
+
+Examples:
+
+Type | Hex data                            | Value
+-------------------------------------------------------
+str  | 00 00 00 00                         | ""
+str  | 00 00 00 03 66 6f 6f                | "foo"
+str  | 00 00 00 08 45 6C 62 65 72 65 74 68 | "Elbereth"
+
+Arrays
+
+Arrays are described in the type specification by grouping a series of element fields with curly braces {}, followed by ..., in square brackets []. Arrays are represented over the network with a u32 defining the number of elements, followed by that number of elements concatenated together.
+
+It is an error for the length of the array's contents to go beyond the length of the containing message.
+
+Example type:
+
+[{species: str, count: u32}, ...]
+
+Example data:
+
+[{species:"rat",count:10}, {species:"dog",count:15}]
+
+Example bytes:
+
+Hexadecimal:            Decoded:
+00 00 00 02             (length 2) [
+                          {
+00 00 00 03 72 61 74        species: (length 3) "rat",
+00 00 00 0a                 count: 10,
+                          },
+                          {
+00 00 00 03 64 6f 67        species: (length 3) "dog",
+00 00 00 0f                 count: 15
+                          },
+                        ],
+
+Checksum
+
+The bytes in a message must sum to 0 (modulo 256). This is achieved by controlling the checksum byte, which is the last byte of the message.
+
+For example, if the bytes of a message (excluding the checksum byte) sum to 254, then the checksum byte must be 0x02.
+
+It is an error to send a message with an incorrect checksum.
+Sites
+
+A site is a physical location. Each site is identified by a unique u32 "site ID".
+Species
+
+A species is a type of animal, identified by a str. These strings don't necessarily bear any resemblance to any species nomenclature you may be familiar with, and indeed the animals referred to may not be animals you are familiar with. Consider the species names to be opaque string data for the purposes of Pest Control.
+
+In particular, for example, the "long-tailed rat" and the "common long-tailed rat" are 2 different species.
+Policies
+
+A policy is advice to the authority to either conserve or cull a particular species at a particular site. Each created policy at a given site is identified by a unique u32 "policy ID". The species is identified by a str.
+
+Policy IDs are only applicable within a given site. Different sites may use the same policy ID to refer to different policies. Any given site will not reuse a policy ID even after it has been deleted.
+Message types
+
+Each message has a single byte indicating the message type, followed by a u32 containing the message's total length in bytes (including the bytes for the type, length, and checksum), followed by the message content, followed by a single byte checksum.
+
+Anywhere a message triggers a response, the responses must always come in the same order as the corresponding requests.
+0x50: Hello
+
+Fields:
+
+    protocol: str ("pestcontrol")
+    version: u32 (1)
+
+This message must be sent by each side as the first message of every session. The values for protocol and version must be "pestcontrol" and 1 respectively. It is an error to send any other values. It is an error for the first message from a client or server to be of a type other than Hello.
+
+Example:
+
+Hexadecimal:    Decoded:
+50              Hello{
+00 00 00 19       (length 25)
+00 00 00 0b       protocol: (length 11)
+70 65 73 74        "pest
+63 6f 6e 74         cont
+72 6f 6c            rol"
+00 00 00 01       version: 1
+ce                (checksum 0xce)
+                }
+
+0x51: Error
+
+Fields:
+
+    message: str
+
+When a client or server detects an error condition caused by the other side of the connection, it must send an Error message, and may optionally close the connection.
+
+Example:
+
+Hexadecimal:    Decoded:
+51              Error{
+00 00 00 0d       (length 13)
+00 00 00 03       message: (length 3)
+62 61 64           "bad",
+78                (checksum 0x78)
+                }
+
+0x52: OK
+
+No fields.
+
+This message is sent as an acknowledgment of success in response to valid DeletePolicy messages.
+
+Example:
+
+Hexadecimal:    Decoded:
+52              OK{
+00 00 00 06       (length 6)
+a8                (checksum 0xa8)
+                }
+
+0x53: DialAuthority
+
+Fields:
+
+    site: u32
+
+This message is sent by your server to the Authority Server, to ask the Authority Server to connect to a particular authority. This must be the second message you send to the Authority Server (after the mandatory Hello). Once connected to the corresponding authority, the Authority Server will send back the desired target population ranges as a TargetPopulations message.
+
+Once an authority is dialed, the connection to the Authority Server remains connected to that authority until the connection is closed. To dial a different authority you need to make another connection to the Authority Server.
+
+Example:
+
+Hexadecimal:    Decoded:
+53              DialAuthority{
+00 00 00 0a       (length 10)
+00 00 30 39       site: 12345,
+3a                (checksum 0x3a)
+                }
+
+0x54: TargetPopulations
+
+Fields:
+
+    site: u32
+    populations: [{species: str, min: u32, max: u32}, ...]
+
+This message is sent by the Authority Server in response to a valid DialAuthority message, once it has connected to the authority and obtained the target population ranges.
+
+The message contains the site number and the minimum and maximum intended value for each controlled species. The Authority Server will never send a TargetPopulations message with a site ID that you didn't ask for.
+
+Example:
+
+Hexadecimal:    Decoded:
+54              TargetPopulations{
+00 00 00 2c       (length 44)
+00 00 30 39       site: 12345,
+00 00 00 02       populations: (length 2) [
+                    {
+00 00 00 03           species: (length 3)
+64 6f 67                "dog",
+00 00 00 01           min: 1,
+00 00 00 03           max: 3,
+                    },
+                    {
+00 00 00 03           species: (length 3)
+72 61 74                "rat",
+00 00 00 00           min: 0,
+00 00 00 0a           max: 10,
+                    },
+                  ],
+80                (checksum 0x80)
+                }
+
+0x55: CreatePolicy
+
+Fields:
+
+    species: str
+    action: byte (0x90 = cull, 0xa0 = conserve, anything else is an error)
+
+This message is sent by your server to the Authority Server, to advise the authority to instate a new policy. The species field identifies the species, and the action field says whether the authority should cull the species (value of 0x90), or conserve the species (value of 0xa0).
+
+The Authority Server will send back a PolicyResult message containing the assigned policy ID.
+
+Example:
+
+Hexadecimal:    Decoded:
+55              CreatePolicy{
+00 00 00 0e       (length 14)
+00 00 00 03       species: (length 3)
+64 6f 67            "dog",
+a0                action: conserve,
+c0                (checksum 0xc0)
+                }
+
+0x56: DeletePolicy
+
+Fields:
+
+    policy: u32
+
+This message is sent by your server to the Authority Server, to advise the authority to delete an existing policy. The policy field must refer to a policy ID previously returned in a PolicyResult message for the site. It is an error to attempt to delete a non-existent policy.
+
+The Authority Server will sent back an OK message to acknowledge deletion of the policy.
+
+Example:
+
+Hexadecimal:    Decoded:
+56              DeletePolicy{
+00 00 00 0a       (length 10)
+00 00 00 7b       policy: 123,
+25                (checksum 0x25)
+                }
+
+0x57: PolicyResult
+
+Fields:
+
+    policy: u32
+
+This message is sent by the Authority Server to your server in response to a valid CreatePolicy message. It tells you the policy ID that was assigned.
+
+Example:
+
+Hexadecimal:    Decoded:
+57              PolicyResult{
+00 00 00 0a       (length 10)
+00 00 00 7b       policy: 123,
+24                (checksum 0x24)
+                }
+
+0x58: SiteVisit
+
+Fields:
+
+    site: u32
+    populations: [{species: str, count: u32}, ...]
+
+This message is sent by a client to your server, to inform it of the latest observations from a site visit. The site field identifies the site, and the populations field is an array containing the observed number of each observed species.
+
+It is an error for the populations field to contain multiple conflicting counts for the same species (but non-conflicting duplicates are allowed).
+
+Your server must not send any response to valid SiteVisit messages.
+
+Example:
+
+Hexadecimal:    Decoded:
+58              SiteVisit{
+00 00 00 24       (length 36)
+00 00 30 39       site: 12345,
+00 00 00 02       populations: (length 2) [
+                    {
+00 00 00 03           species: (length 3)
+64 6f 67                "dog",
+00 00 00 01           count: 1,
+                    },
+                    {
+00 00 00 03           species: (length 3)
+72 61 74                "rat",
+00 00 00 05            count: 5,
+                    },
+                  ],
+8c                (checksum 0x8c)
+                }
+
+Message lengths
+
+It is an error for the content contained within the message to exceed the bounds of the message's specified length.
+
+It is an error for the content contained within the message to be shorter than implied by the message's specified length (i.e. if there are unused bytes in the message).
+
+The following message is illegal because it has 4 unused bytes between the message content and the checksum:
+
+Hexadecimal:    Decoded:
+50              Hello{
+00 00 00 1d       (length 29)
+00 00 00 0b       protocol: (length 11)
+70 65 73 74        "pest
+63 6f 6e 74         cont
+72 6f 6c            rol"
+00 00 00 01       version: 1
+00 00 00 00
+ca                (checksum 0xca)
+                }
+
+The following message is illegal because it declares a total length of 10 bytes, but contains more than 10 bytes in total (in particular, the string is declared to be 11 bytes long):
+
+Hexadecimal:    Decoded:
+50              Hello{
+00 00 00 0a       (length 10)
+00 00 00 0b       protocol: (length 11)
+70 65 73 74        "pest
+63 6f 6e 74         cont
+72 6f 6c            rol"
+00 00 00 01       version: 1
+ca                (checksum 0xca)
+                }
+
+Policy rules
+
+When a client sends you a SiteVisit, you need a connection to the authority for the specified site. If you don't already have one, connect to the Authority Server and use DialAuthority to connect to the correct authority. This will send you back the TargetPopulations for that site. If you already have a connection to the site authority, you may reuse the same connection.
+
+Looking at the TargetPopulations, work out whether the count c for each species was within range (min <= c <= max), too low (c < min), or too high (c > max). Where a species is not present in the SiteVisit, it means there were no animals of that species observed. Where a species is observed in the SiteVisit but not present in the TargetPopulations, it means the authority is not trying to control the population of that species, so you should not advise any policy.
+
+(The site visitors are very thorough, so you don't need to worry that there might have been some animals hiding that they failed to count: you can trust that the counts reported in the SiteVisit messages are the true population counts.)
+
+The TargetPopulations for any given site are static; it is safe to cache them indefinitely.
+
+You need to make sure that there is no policy advised for those species which are within the intended range, that there is a conserve policy for those species which have too few members, and a cull policy for those species which have too many members.
+
+Advise the correct policies by sending CreatePolicy and DeletePolicy messages to the site authority, via your connection through the Authority Server. You need to keep track of which policies are advised (identified by policy IDs sent in the PolicyResult messages) so that you can adjust them next time you get observations from the same site.
+
+It is acceptable for the policies to be in an incorrect state transiently, while you are still actively creating and deleting policies, but they must settle to the correct state, corresponding to the most recent site visit. The settled state may not contain more than one policy for any given species, even if they are duplicates.
+Example session with site-visiting client
+
+"-->" denotes messages from the server to the client, and "<--" denotes messages from the client to the server.
+
+Here, a client connects to your server:
+
+<-- Hello
+--> Hello
+<-- SiteVisit{site:12345, populations:[{species:"long-tailed rat",count:20}]}
+
+Both sides say Hello, and then the client reports a site visit for site ID 12345, with an observation of 20 long-tailed rats.
+Example session with Authority Server
+
+Here, your server is the client, connecting to the Authority Server:
+
+<-- Hello
+--> Hello
+<-- DialAuthority{site:12345}
+--> TargetPopulations{site:12345, populations:[{species:"long-tailed rat",min:0,max:10}]}
+<-- CreatePolicy{species:"long-tailed rat", action:"cull"}
+--> PolicyResult{policy:123}
+
+Both sides say Hello, and then the client requests to dial the authority for side ID 12345. The authority specifies that there should be between 0 and 10 long-tailed rats. 20 long-tailed rats had been observed, so the client advises the creation of a policy to cull long-tailed rats, and the authority assigns policy ID 123.
+Other requirements
+
+Accept connections over TCP.
+
+The protocol does not specify bounds on lengths, number of simultaneous clients, etc.; there are no hard limits imposed by the specification, but your server needs to work. It is acceptable to quickly return an Error for a rogue client that attempts to submit a message with a length field which is "unreasonably large", without first buffering the entire message, as long as your server works for legitimate clients.
+
+One client can submit site visits for multiple sites, and multiple clients can submit site visits for the same site. Where multiple clients submit site visits for the same site around the same time, and their order is ambiguous, your server may decide on any possible ordering that is consistent with all externally-observable behaviour.

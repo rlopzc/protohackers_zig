@@ -1,0 +1,121 @@
+8: Insecure Sockets Layer
+
+The Elves at the North Pole have been so busy saving Christmas that they haven't found time to properly secure the work orders for the Christmas toy workshop! They've invented a quick and dirty obfuscation scheme to obscure the data from prying eyes.
+
+Warning: This protocol is irrecoverably flawed. Don't use it in real life. The Elves are dumb, but you don't have to be. Read more about rolling your own crypto.
+Application layer
+
+At the start of a session, a client connects using TCP and sends a "cipher spec", and all further communication over the session (both to and from the server) is obfuscated using the cipher spec.
+
+A client request is a line of ASCII text (terminated by a single newline character) containing a comma-separated list of toys to make, like so:
+
+10x toy car,15x dog on a string,4x inflatable motorcycle
+
+To prioritise work in the toy workshop, the server must find out which toy from the request they need to make the most copies of, and then send that toy back, also terminated with an ASCII newline character, like so:
+
+15x dog on a string
+
+There can be multiple requests per session.
+Obfuscation layer
+
+All communication is obfuscated by the "Insecure Sockets Layer", using the cipher spec supplied by the client when it first connected.
+Cipher spec
+
+The cipher spec describes the series of operations that were used to obfuscate the data. The server must apply the same cipher spec to encode its response stream. The server must apply the inverse of the cipher spec to decode the request stream.
+
+The cipher spec is represented as a series of operations, with the operation types encoded by a single byte (and for 02 and 04, another byte encodes the operand), ending with a 00 byte, as follows:
+
+    00: End of cipher spec.
+
+    01: reversebits: Reverse the order of bits in the byte, so the least-significant bit becomes the most-significant bit, the 2nd-least-significant becomes the 2nd-most-significant, and so on.
+
+    02 N: xor(N): XOR the byte by the value N. Note that 0 is a valid value for N.
+
+    03: xorpos: XOR the byte by its position in the stream, starting from 0.
+
+    04 N: add(N): Add N to the byte, modulo 256. Note that 0 is a valid value for N, and addition wraps, so that 255+1=0, 255+2=1, and so on.
+
+    05: addpos: Add the position in the stream to the byte, modulo 256, starting from 0. Addition wraps, so that 255+1=0, 255+2=1, and so on.
+
+For the purposes of the xorpos and addpos operations, note that there is a separate stream position counter for the client-sent and server-sent streams, with each one starting at 0, and the counter is not reset to 0 at the end of each request or response.
+No-op ciphers
+
+If a client tries to use a cipher that leaves every byte of input unchanged, the server must immediately disconnect without sending any data back. Examples of no-op ciphers include (but are not limited to):
+
+    empty cipher spec (00)
+    xor(0) (02 00 00)
+    xor(X),xor(X) for any X (e.g. 02 ab 02 ab 00)
+    reversebits,reversebits (01 01 00)
+    xor(A),xor(B),xor(C), where A|B=C (e.g. 02 a0 02 0b 02 ab 00)
+
+Example cipher specs
+xor(1),reversebits
+
+The cipher spec xor(1),reversebits would be represented in hexadecimal as 02 01 01 00:
+
+02 01     xor(1)
+01        reversebits
+00        end of cipher spec
+
+It would encode the message "hello" in hexadecimal from 68 65 6c 6c 6f to 96 26 b6 b6 76:
+
+pos:           0  1  2  3  4
+message:       h  e  l  l  o
+hex:          68 65 6c 6c 6f
+
+xor(1):       69 64 6d 6d 6e
+reversebits:  96 26 b6 b6 76
+
+addpos,addpos
+
+The cipher spec addpos,addpos would be represented in hexadecimal as 05 05 00:
+
+05        addpos
+05        addpos
+00        end of cipher spec
+
+It would encode the message "hello" in hexadecimal from 68 65 6c 6c 6f to 68 67 70 72 77:
+
+pos:      0  1  2  3  4
+message:  h  e  l  l  o
+hex:     68 65 6c 6c 6f
+
+addpos:  68 66 6e 6f 73
+addpos:  68 67 70 72 77
+
+Example session
+
+Example session at application layer ("-->" denotes lines from the server to the client, and "<--" denotes lines from the client to the server):
+
+<-- 4x dog,5x car
+--> 5x car
+<-- 3x rat,2x cat
+--> 3x rat
+
+The same session after obfuscation, in hexadecimal, might look like this, with cipher spec xor(123),addpos,reversebits ("-->" denotes data from the server to the client, and "<--" denotes data from the client to the server):
+
+<-- 02 7b 05 01 00                              xor(123),addpos,reversebits
+<-- f2 20 ba 44 18 84 ba aa d0 26 44 a4 a8 7e   4x dog,5x car\n
+--> 72 20 ba d8 78 70 ee                        5x car\n
+<-- 6a 48 d6 58 34 44 d6 7a 98 4e 0c cc 94 31   3x rat,2x cat\n
+--> f2 d0 26 c8 a4 d8 7e                        3x rat\n
+
+Limits
+
+Make sure you support at least 10 simultaneous clients.
+
+Clients won't send lines longer than 5000 characters.
+
+Clients won't send cipher specs whose encoding is longer than 80 bytes.
+
+Clients won't try to use illegal cipher specs (e.g. 07 00 is illegal, because 07 is not a valid cipher spec operation).
+
+Clients won't send requests that are not a comma-separated list of toys, starting with an ASCII-formatted integer followed by an "x" character.
+
+If multiple toys share the maximum number, you can break the tie arbitrarily.
+
+There will always be fewer than 2^31 copies required for any given toy.
+
+The empty request is not a valid request.
+
+As the Elves are so busy, they don't have time to worry about pesky edge cases. In response to invalid input the server is free to do nothing, crash, or vanish in a puff of logic.
