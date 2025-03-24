@@ -3,8 +3,10 @@
 Modern messaging software uses too many computing resources, so we're going back to basics. Budget Chat is a simple TCP-based chat room protocol.
 
 Each message is a single line of ASCII text terminated by a newline character ('\n', or ASCII 10). Clients can send multiple messages per connection. Servers may optionally strip trailing whitespace, such as carriage return characters ('\r', or ASCII 13). All messages are raw ASCII text, not wrapped up in JSON or any other format.
-Upon connection
-Setting the user's name
+
+# Upon connection
+
+## Setting the user's name
 
 When a client connects to the server, it does not yet have a name and is not considered to have joined. The server must prompt the user by sending a single message asking for a name. The exact text of this message is implementation-defined.
 
@@ -17,7 +19,8 @@ The first message from a client sets the user's name, which must contain at leas
 Implementations may limit the maximum length of a name, but must allow at least 16 characters. Implementations may choose to either allow or reject duplicate names.
 
 If the user requests an illegal name, the server may send an informative error message to the client, and the server must disconnect the client, without sending anything about the illegal user to any other clients.
-Presence notification
+
+## Presence notification
 
 Once the user has a name, they have joined the chat room and the server must announce their presence to other users (see "A user joins" below).
 
@@ -28,7 +31,8 @@ Example:
 * The room contains: bob, charlie, dave
 
 All subsequent messages from the client are chat messages.
-Chat messages
+
+## Chat messages
 
 When a client sends a chat message to the server, the server must relay it to all other clients as the concatenation of:
 
@@ -48,7 +52,7 @@ For example, if a user called "alice" sends a message saying "Hello, world!", al
 
 [alice] Hello, world!
 
-A user joins
+## A user joins
 
 When a user joins the chat room by setting an acceptable name, the server must send all other users a message to inform them that the user has joined. The exact text of this message is implementation-defined, but must start with an asterisk ('*'), and must contain the user's name.
 
@@ -57,7 +61,8 @@ Example:
 * bob has entered the room
 
 The server must send this message to other users that have already joined, but not to connected clients that have not yet joined.
-A user leaves
+
+## A user leaves
 
 When a joined user is disconnected from the server for any reason, the server must send all other users a message to inform them that the user has left. The exact text of this message is implementation-defined, but must start with an asterisk ('*'), and must contain the user's name.
 

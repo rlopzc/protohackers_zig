@@ -8,6 +8,7 @@ const arg_error_msg = "missing argument. specify test to run. i.e. 00, 01, ...";
 const smoke_test = @import("exercises/00_smoke_test.zig");
 const prime_time = @import("exercises/01_prime_time.zig");
 const means_to_an_end = @import("exercises/02_means_to_an_end.zig");
+const budget_chat = @import("exercises/03_budget_chat.zig");
 
 pub fn main() !void {
     var gpa = std.heap.GeneralPurposeAllocator(.{}){};
@@ -38,6 +39,10 @@ pub fn main() !void {
         2 => {
             log.info("Running 02 - Means to an End", .{});
             try means_to_an_end.main();
+        },
+        3 => {
+            log.info("Running 03 - Budget Chat", .{});
+            try budget_chat.main();
         },
         else => {
             log.err("test not found, try: 00, 01, ...", .{});
