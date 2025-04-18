@@ -40,8 +40,13 @@ const MeansToAnEndRunner = struct {
     }
 
     fn deinit(ptr: *anyopaque) void {
-        const self: *MeansToAnEndRunner = @ptrCast(@alignCast(ptr));
-        defer self.prices.deinit();
+        // The issue is when a client disconnects, this is deinitialized,
+        // which is wrong. We need to deinit when the thread has finished as
+        // cleanup
+        defer {
+            const self: *MeansToAnEndRunner = @ptrCast(@alignCast(ptr));
+            self.prices.deinit();
+        }
     }
 
     // To keep bandwidth usage down, a simple binary format has been specified.
