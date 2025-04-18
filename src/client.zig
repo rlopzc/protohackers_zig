@@ -47,12 +47,7 @@ pub const Client = struct {
         while (true) {
             const msg = reader.readMessage() catch break;
             log.info("client={} received={}", .{ self.socket.address, std.zig.fmtEscapes(msg) });
-
-            runner.callback(msg, &self) catch |err| switch (err) {
-                else => {
-                    break;
-                },
-            };
+            runner.callback(msg, &self) catch break;
         }
 
         log.info("client {} disconnected", .{self.socket.address});
