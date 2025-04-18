@@ -12,6 +12,9 @@ pub fn main() !void {
     defer server.deinit();
 
     var gpa = std.heap.GeneralPurposeAllocator(.{}){};
+    var budget_chat = ChatRoom.init(gpa.allocator());
+    var runner = budget_chat.runner();
+    defer runner.deinit();
 
     while (true) {
         const client = server.accept() catch |err| {
@@ -19,10 +22,9 @@ pub fn main() !void {
             continue;
         };
 
-        var budget_chat = ChatRoom.init(gpa.allocator());
         const thread = try std.Thread.spawn(.{}, Client.run, .{
             client,
-            budget_chat.runner(),
+            runner,
         });
         thread.detach();
     }
@@ -30,7 +32,10 @@ pub fn main() !void {
 
 const Username = []const u8;
 
-const UserState = enum { setting_usernamename, chatting };
+const UserState = enum {
+    setting_username,
+    chatting,
+};
 
 const User = struct {
     state: UserState,
@@ -39,19 +44,34 @@ const User = struct {
 
 const ChatRoom = struct {
     allocator: mem.Allocator,
-    users: std.HashMap(net.Address, User, std.hash_map.StringContext, std.hash_map.default_max_load_percentage),
+    users: std.HashMap(net.Address, User, AddressContext, std.hash_map.default_max_load_percentage),
+
+    const Self = @This();
+
+    fn printUsers(self: Self) void {
+        var it = self.users.iterator();
+        log.debug("Users:", .{});
+        while (it.next()) |entry| {
+            log.debug("{}: [{s}]", .{ entry.key_ptr.*, entry.value_ptr.username });
+        }
+    }
 
     fn init(allocator: mem.Allocator) ChatRoom {
         return .{
             .allocator = allocator,
-            .users = std.StringHashMap(User).init(allocator),
+            .users = std.HashMap(net.Address, User, AddressContext, std.hash_map.default_max_load_percentage).init(allocator),
         };
     }
 
     fn deinit(ptr: *anyopaque) void {
         const self: *ChatRoom = @ptrCast(@alignCast(ptr));
-        defer self.users.deinit();
-        // TODO: Deallocate []const u8 usernames
+        const users = &self.users;
+        var it = users.valueIterator();
+        while (it.next()) |value_ptr| {
+            self.allocator.free(value_ptr.username);
+        }
+
+        self.users.deinit();
     }
 
     fn delimiterFinder(unprocessed: []u8) ?usize {
@@ -72,16 +92,28 @@ const ChatRoom = struct {
         try client.write("Welcome to the chat! What's your username?\n");
     }
 
+    fn onDisconnect(ptr: *anyopaque, client: *const Client) !void {
+        const self: *ChatRoom = @ptrCast(@alignCast(ptr));
+        const users = &self.users;
+        const removed = users.fetchRemove(client.socket.address);
+
+        if (removed) |user| {
+            log.debug("{s} removed", .{user.value.username});
+        }
+    }
+
     fn callback(ptr: *anyopaque, msg: []const u8, client: *const Client) !void {
         const self: *ChatRoom = @ptrCast(@alignCast(ptr));
         const users = &self.users;
-        const value = try users.get(client.socket.address);
-        if (!value.found_existing) unreachable;
 
-        const user: *User = value.value_ptr;
+        const user: *User = users.getPtr(client.socket.address) orelse unreachable;
+
         switch (user.state) {
             UserState.setting_username => {
-                const username = std.mem.Allocator.dupe(self.allocator, []const u8, );
+                const username = std.mem.trimRight(u8, msg, "\r\n");
+                user.username = try self.allocator.dupe(u8, username);
+                user.state = .chatting;
+                self.printUsers();
             },
             UserState.chatting => {},
         }
