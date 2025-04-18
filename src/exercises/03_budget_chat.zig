@@ -40,6 +40,7 @@ const UserState = enum {
 const User = struct {
     state: UserState,
     username: Username,
+    client: *const Client,
 };
 
 const ChatRoom = struct {
@@ -88,6 +89,7 @@ const ChatRoom = struct {
         try users.put(client.socket.address, User{
             .state = .setting_username,
             .username = undefined,
+            .client = client,
         });
         try client.write("Welcome to the chat! What's your username?\n");
     }
@@ -115,7 +117,17 @@ const ChatRoom = struct {
                 user.state = .chatting;
                 self.printUsers();
             },
-            UserState.chatting => {},
+            UserState.chatting => {
+                const chatMsg: []const u8 = try std.fmt.allocPrint(self.allocator, "[{s}] {s}", .{ user.username, msg });
+                defer self.allocator.free(chatMsg);
+
+                var it = users.iterator();
+                while (it.next()) |entry| {
+                    if (!entry.key_ptr.eql(client.socket.address)) {
+                        try entry.value_ptr.client.write(chatMsg);
+                    }
+                }
+            },
         }
     }
 
