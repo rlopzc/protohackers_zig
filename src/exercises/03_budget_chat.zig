@@ -104,6 +104,19 @@ const ChatRoom = struct {
         }
     }
 
+    fn notifyNewUser(self: Self, newUser: *User) !void {
+        const users = &self.users;
+        const msg: []const u8 = try std.fmt.allocPrint(self.allocator, "* {s} has entered the room\n", .{newUser.username});
+        defer self.allocator.free(msg);
+
+        var it = users.iterator();
+        while (it.next()) |entry| {
+            if (!entry.key_ptr.eql(newUser.client.socket.address)) {
+                try entry.value_ptr.client.write(msg);
+            }
+        }
+    }
+
     fn callback(ptr: *anyopaque, msg: []const u8, client: *const Client) !void {
         const self: *ChatRoom = @ptrCast(@alignCast(ptr));
         const users = &self.users;
@@ -115,10 +128,12 @@ const ChatRoom = struct {
                 const username = std.mem.trimRight(u8, msg, "\r\n");
                 user.username = try self.allocator.dupe(u8, username);
                 user.state = .chatting;
+
+                try self.notifyNewUser(user);
                 self.printUsers();
             },
             UserState.chatting => {
-                const chatMsg: []const u8 = try std.fmt.allocPrint(self.allocator, "[{s}] {s}", .{ user.username, msg });
+                const chatMsg: []const u8 = try std.fmt.allocPrint(self.allocator, "[{s}] {s}\n", .{ user.username, msg });
                 defer self.allocator.free(chatMsg);
 
                 var it = users.iterator();
