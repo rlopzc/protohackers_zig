@@ -31,7 +31,7 @@ pub fn main() !void {
 }
 
 const PrimeTimeRunner = struct {
-    fn delimiterFinder(_: usize, unprocessed: []u8) ?usize {
+    fn delimiterFinder(unprocessed: []u8) ?usize {
         const index = std.mem.indexOfScalar(u8, unprocessed, '\n');
         if (index != null) {
             return index.? + 1;
@@ -70,6 +70,7 @@ const PrimeTimeRunner = struct {
             .callbackFn = callback,
             .delimiterFinderFn = delimiterFinder,
             .deinitFn = deinit,
+            .onConnectFn = undefined,
         };
     }
 };

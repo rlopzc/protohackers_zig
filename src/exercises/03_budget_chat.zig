@@ -54,12 +54,22 @@ const ChatRoom = struct {
         // TODO: Deallocate []const u8 usernames
     }
 
-    fn delimiterFinder(_: usize, unprocessed: []u8) ?usize {
+    fn delimiterFinder(unprocessed: []u8) ?usize {
         const index = mem.indexOfScalar(u8, unprocessed, '\n');
         if (index != null) {
             return index.? + 1;
         }
         return null;
+    }
+
+    fn onConnect(ptr: *anyopaque, client: *const Client) !void {
+        const self: *ChatRoom = @ptrCast(@alignCast(ptr));
+        const users = &self.users;
+        try users.put(client.socket.address, User{
+            .state = .setting_username,
+            .username = undefined,
+        });
+        try client.write("Welcome to the chat! What's your username?\n");
     }
 
     fn callback(ptr: *anyopaque, msg: []const u8, client: *const Client) !void {
@@ -83,6 +93,22 @@ const ChatRoom = struct {
             .callbackFn = callback,
             .delimiterFinderFn = delimiterFinder,
             .deinitFn = deinit,
+            .onConnectFn = onConnect,
         };
+    }
+};
+
+const AddressContext = struct {
+    pub fn hash(_: AddressContext, address: net.Address) u64 {
+        var h = std.hash.Wyhash.init(0);
+
+        const bytes = @as([*]const u8, @ptrCast(&address.any))[0..address.getOsSockLen()];
+        h.update(bytes);
+
+        return h.final();
+    }
+
+    pub fn eql(_: AddressContext, a: net.Address, b: net.Address) bool {
+        return net.Address.eql(a, b);
     }
 };

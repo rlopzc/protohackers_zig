@@ -26,7 +26,7 @@ pub fn main() !void {
 }
 
 const SmokeTestRunner = struct {
-    fn delimiterFinder(_: usize, unprocessed: []u8) ?usize {
+    fn delimiterFinder(unprocessed: []u8) ?usize {
         if (unprocessed.len != 0) {
             return unprocessed.len;
         }
@@ -46,6 +46,7 @@ const SmokeTestRunner = struct {
             .callbackFn = callback,
             .delimiterFinderFn = delimiterFinder,
             .deinitFn = deinit,
+            .onConnectFn = undefined,
         };
     }
 };
