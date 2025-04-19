@@ -50,6 +50,8 @@ pub const Client = struct {
             runner.callback(msg, &self) catch break;
         }
 
+        try runner.onDisconnect(&self);
+
         log.info("client {} disconnected", .{self.socket.address});
     }
 };

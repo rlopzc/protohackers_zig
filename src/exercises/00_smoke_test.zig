@@ -38,15 +38,11 @@ const SmokeTestRunner = struct {
         try client.write(msg);
     }
 
-    fn deinit(_: *anyopaque) void {}
-
     fn runner(self: *SmokeTestRunner) Runner {
         return .{
             .ptr = self,
             .callbackFn = callback,
             .delimiterFinderFn = delimiterFinder,
-            .deinitFn = deinit,
-            .onConnectFn = undefined,
         };
     }
 };

@@ -7,10 +7,17 @@ const Reader = @import("buffered_reader.zig").Reader;
 /// work, but means_to_an_end requires one HashMap per client.
 pub const Runner = struct {
     ptr: *anyopaque,
+    deinitFn: *const fn (ptr: *anyopaque) void = undefined,
     callbackFn: *const fn (ptr: *anyopaque, msg: []const u8, client: *const Client) anyerror!void,
     delimiterFinderFn: Reader.DelimiterFinder,
-    deinitFn: *const fn (ptr: *anyopaque) void,
-    onConnectFn: *const fn (ptr: *anyopaque, client: *const Client) anyerror!void,
+    onConnectFn: *const fn (ptr: *anyopaque, client: *const Client) anyerror!void = undefined,
+    onDisconnectFn: *const fn (ptr: *anyopaque, client: *const Client) anyerror!void = undefined,
+
+    pub fn deinit(self: Runner) void {
+        if (self.deinitFn != undefined) {
+            return self.deinitFn(self.ptr);
+        }
+    }
 
     pub fn callback(self: Runner, msg: []const u8, client: *const Client) !void {
         return self.callbackFn(self.ptr, msg, client);
@@ -22,7 +29,9 @@ pub const Runner = struct {
         }
     }
 
-    pub fn deinit(self: Runner) void {
-        return self.deinitFn(self.ptr);
+    pub fn onDisconnect(self: Runner, client: *const Client) !void {
+        if (self.onDisconnectFn != undefined) {
+            return self.onDisconnectFn(self.ptr, client);
+        }
     }
 };

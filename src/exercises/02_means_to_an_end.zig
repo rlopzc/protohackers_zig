@@ -150,7 +150,6 @@ const MeansToAnEndRunner = struct {
             .callbackFn = callback,
             .delimiterFinderFn = delimiterFinder,
             .deinitFn = deinit,
-            .onConnectFn = undefined,
         };
     }
 };

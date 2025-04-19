@@ -62,15 +62,11 @@ const PrimeTimeRunner = struct {
         try client.write(buf.items);
     }
 
-    fn deinit(_: *anyopaque) void {}
-
     fn runner(self: *PrimeTimeRunner) Runner {
         return .{
             .ptr = self,
             .callbackFn = callback,
             .delimiterFinderFn = delimiterFinder,
-            .deinitFn = deinit,
-            .onConnectFn = undefined,
         };
     }
 };
