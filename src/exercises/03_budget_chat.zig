@@ -99,10 +99,10 @@ const ChatRoom = struct {
         const users = &self.users;
         const removed = users.fetchRemove(client.socket.address);
 
-        if (removed) |entry| try self.notifyDisconnectedUser(&entry.value);
+        if (removed) |entry| try self.notifyDisconnectedUser(entry.value);
     }
 
-    fn notifyDisconnectedUser(self: Self, disconnected_user: *const User) !void {
+    fn notifyDisconnectedUser(self: Self, disconnected_user: User) !void {
         const disconnected_user_msg = try std.fmt.allocPrint(self.allocator, "* {s} has left the room\n", .{disconnected_user.username});
         defer self.allocator.free(disconnected_user_msg);
 
