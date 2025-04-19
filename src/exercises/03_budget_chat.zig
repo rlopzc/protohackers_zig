@@ -99,22 +99,38 @@ const ChatRoom = struct {
         const users = &self.users;
         const removed = users.fetchRemove(client.socket.address);
 
-        if (removed) |user| {
-            log.debug("{s} removed", .{user.value.username});
-        }
+        if (removed) |entry| self.notifyDisconnectedUser(&entry.value);
     }
 
-    fn notifyNewUser(self: Self, newUser: *User) !void {
+    fn notifyDisconnectedUser(self: Self, disconnected_user: *User) !void {
+        const disconnected_user_msg = try std.fmt.allocPrint(self.allocator, "* {s} has left the room\n", .{disconnected_user.username});
+        defer self.allocator.free(disconnected_user_msg);
+
+        log.debug("{s} removed", .{disconnected_user.username});
+
+        var it = self.users.valueIterator();
+        while (it.next()) |user| try user.client.write(disconnected_user_msg);
+    }
+
+    fn notifyNewUser(self: Self, new_user: *User) !void {
         const users = &self.users;
-        const msg: []const u8 = try std.fmt.allocPrint(self.allocator, "* {s} has entered the room\n", .{newUser.username});
-        defer self.allocator.free(msg);
+        const new_user_msg: []const u8 = try std.fmt.allocPrint(self.allocator, "* {s} has entered the room\n", .{new_user.username});
+        defer self.allocator.free(new_user_msg);
+
+        // notify who is in the room
+        var users_in_room_msg: []u8 = try std.fmt.allocPrint(self.allocator, "* The room contains: ", .{});
+        defer self.allocator.free(users_in_room_msg);
 
         var it = users.iterator();
         while (it.next()) |entry| {
-            if (!entry.key_ptr.eql(newUser.client.socket.address)) {
-                try entry.value_ptr.client.write(msg);
+            if (!entry.key_ptr.eql(new_user.client.socket.address)) {
+                try entry.value_ptr.client.write(new_user_msg);
+                users_in_room_msg = try std.fmt.allocPrint(self.allocator, "{s} {s},", .{ users_in_room_msg, entry.value_ptr.username });
             }
         }
+
+        users_in_room_msg[users_in_room_msg.len - 1] = '\n';
+        try new_user.client.write(users_in_room_msg);
     }
 
     fn callback(ptr: *anyopaque, msg: []const u8, client: *const Client) !void {
@@ -133,7 +149,7 @@ const ChatRoom = struct {
                 self.printUsers();
             },
             UserState.chatting => {
-                const chatMsg: []const u8 = try std.fmt.allocPrint(self.allocator, "[{s}] {s}\n", .{ user.username, msg });
+                const chatMsg: []const u8 = try std.fmt.allocPrint(self.allocator, "[{s}] {s}", .{ user.username, msg });
                 defer self.allocator.free(chatMsg);
 
                 var it = users.iterator();
