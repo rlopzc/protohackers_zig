@@ -27,14 +27,12 @@ pub fn main() !void {
 
 const SmokeTestRunner = struct {
     fn delimiterFinder(unprocessed: []u8) ?usize {
-        if (unprocessed.len != 0) {
-            return unprocessed.len;
-        }
+        if (unprocessed.len != 0) return unprocessed.len;
         return null;
     }
 
-    fn callback(_: *anyopaque, msg: []const u8, client: *const Client) !void {
-        // const self: *SmokeTestRunner = @ptrCast(@alignCast(ptr));
+    fn callback(ptr: *anyopaque, msg: []const u8, client: *const Client) !void {
+        _ = ptr;
         try client.write(msg);
     }
 

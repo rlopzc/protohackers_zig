@@ -1,3 +1,4 @@
+const std = @import("std");
 const Client = @import("client.zig").Client;
 const Reader = @import("buffered_reader.zig").Reader;
 
@@ -7,15 +8,15 @@ const Reader = @import("buffered_reader.zig").Reader;
 /// work, but means_to_an_end requires one HashMap per client.
 pub const Runner = struct {
     ptr: *anyopaque,
-    deinitFn: *const fn (ptr: *anyopaque) void = undefined,
+    deinitFn: ?*const fn (ptr: *anyopaque) void = null,
     callbackFn: *const fn (ptr: *anyopaque, msg: []const u8, client: *const Client) anyerror!void,
     delimiterFinderFn: Reader.DelimiterFinder,
-    onConnectFn: *const fn (ptr: *anyopaque, client: *const Client) anyerror!void = undefined,
-    onDisconnectFn: *const fn (ptr: *anyopaque, client: *const Client) anyerror!void = undefined,
+    onConnectFn: ?*const fn (ptr: *anyopaque, client: *const Client) anyerror!void = null,
+    onDisconnectFn: ?*const fn (ptr: *anyopaque, client: *const Client) anyerror!void = null,
 
     pub fn deinit(self: Runner) void {
-        if (self.deinitFn != undefined) {
-            return self.deinitFn(self.ptr);
+        if (self.deinitFn != null) {
+            return self.deinitFn.?(self.ptr);
         }
     }
 
@@ -24,14 +25,15 @@ pub const Runner = struct {
     }
 
     pub fn onConnect(self: Runner, client: *const Client) !void {
-        if (self.onConnectFn != undefined) {
-            return self.onConnectFn(self.ptr, client);
+        std.log.debug("{any}", .{self.onConnectFn});
+        if (self.onConnectFn != null) {
+            return self.onConnectFn.?(self.ptr, client);
         }
     }
 
     pub fn onDisconnect(self: Runner, client: *const Client) !void {
-        if (self.onDisconnectFn != undefined) {
-            return self.onDisconnectFn(self.ptr, client);
+        if (self.onDisconnectFn != null) {
+            return self.onDisconnectFn.?(self.ptr, client);
         }
     }
 };
