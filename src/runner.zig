@@ -25,7 +25,6 @@ pub const Runner = struct {
     }
 
     pub fn onConnect(self: Runner, client: *const Client) !void {
-        std.log.debug("{any}", .{self.onConnectFn});
         if (self.onConnectFn != null) {
             return self.onConnectFn.?(self.ptr, client);
         }
