@@ -41,6 +41,12 @@ const User = struct {
     state: UserState,
     username: Username,
     client: *const Client,
+
+    const Self = @This();
+
+    fn isChatting(self: Self) bool {
+        return self.state == .chatting;
+    }
 };
 
 const ChatRoom = struct {
@@ -110,7 +116,11 @@ const ChatRoom = struct {
         log.debug("{s} removed", .{disconnected_user.username});
 
         var it = self.users.valueIterator();
-        while (it.next()) |user| try user.client.write(disconnected_user_msg);
+        while (it.next()) |user| {
+            if (user.isChatting()) {
+                try user.client.write(disconnected_user_msg);
+            }
+        }
     }
 
     fn notifyNewUser(self: Self, new_user: *User) !void {
@@ -124,7 +134,7 @@ const ChatRoom = struct {
 
         var it = users.iterator();
         while (it.next()) |entry| {
-            if (!entry.key_ptr.eql(new_user.client.socket.address) and entry.value_ptr.state == .chatting) {
+            if (!entry.key_ptr.eql(new_user.client.socket.address) and entry.value_ptr.isChatting()) {
                 try entry.value_ptr.client.write(new_user_msg);
                 users_in_room_msg = try std.fmt.allocPrint(self.allocator, "{s} {s},", .{ users_in_room_msg, entry.value_ptr.username });
             }
@@ -157,7 +167,7 @@ const ChatRoom = struct {
 
                 var it = users.iterator();
                 while (it.next()) |entry| {
-                    if (!entry.key_ptr.eql(client.socket.address)) {
+                    if (!entry.key_ptr.eql(client.socket.address) and entry.value_ptr.isChatting()) {
                         try entry.value_ptr.client.write(chatMsg);
                     }
                 }
