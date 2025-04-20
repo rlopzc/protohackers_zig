@@ -124,7 +124,7 @@ const ChatRoom = struct {
 
         var it = users.iterator();
         while (it.next()) |entry| {
-            if (!entry.key_ptr.eql(new_user.client.socket.address)) {
+            if (!entry.key_ptr.eql(new_user.client.socket.address) and entry.value_ptr.state == .chatting) {
                 try entry.value_ptr.client.write(new_user_msg);
                 users_in_room_msg = try std.fmt.allocPrint(self.allocator, "{s} {s},", .{ users_in_room_msg, entry.value_ptr.username });
             }
