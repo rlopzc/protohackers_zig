@@ -146,6 +146,8 @@ const ChatRoom = struct {
                 user.username = try self.allocator.dupe(u8, username);
                 user.state = .chatting;
 
+                std.log.debug("set username: {s}", .{user.username});
+
                 try self.notifyNewUser(user);
                 self.printUsers();
             },
