@@ -50,11 +50,12 @@ const ChatRoom = struct {
     const Self = @This();
 
     fn printUsers(self: Self) void {
+        std.debug.print("users: ", .{});
         var it = self.users.iterator();
-        log.debug("Users:", .{});
         while (it.next()) |entry| {
-            log.debug("{}: [{s}]", .{ entry.key_ptr.*, entry.value_ptr.username });
+            std.debug.print("[{}: {s}], ", .{ entry.key_ptr.*, entry.value_ptr.username });
         }
+        std.debug.print("\n", .{});
     }
 
     fn init(allocator: mem.Allocator) ChatRoom {
