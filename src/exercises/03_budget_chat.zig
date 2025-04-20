@@ -158,6 +158,8 @@ const ChatRoom = struct {
 
                 std.log.debug("set username: {s}", .{user.username});
 
+                // TODO: check for username, at least 16 characters, just alphanumeric characters
+
                 try self.notifyNewUser(user);
                 self.printUsers();
             },
