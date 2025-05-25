@@ -27,8 +27,7 @@ pub const TcpServer = struct {
     pub fn accept(self: *Self) !Client {
         const socket = try self.server.accept();
 
-        // Added these two lines (.tv_sec and .tv_usec before zig 0.14.0)
-        const timeout = posix.timeval{ .tv_sec = 20, .tv_usec = 0 };
+        const timeout = posix.timeval{ .sec = 20, .usec = 0 };
         try posix.setsockopt(socket.stream.handle, posix.SOL.SOCKET, posix.SO.RCVTIMEO, &std.mem.toBytes(timeout));
         try posix.setsockopt(socket.stream.handle, posix.SOL.SOCKET, posix.SO.SNDTIMEO, &std.mem.toBytes(timeout));
         return Client.new(socket);
