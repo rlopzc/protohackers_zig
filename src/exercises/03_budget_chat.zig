@@ -123,12 +123,12 @@ const ChatRoom = struct {
         const self: *ChatRoom = @ptrCast(@alignCast(ptr));
         const users = &self.users;
         const removed = users.fetchRemove(client.socket.address);
-        std.log.debug("user removed? {any}", .{removed});
 
         if (removed) |entry| try self.notifyDisconnectedUser(entry.value);
     }
 
     fn notifyDisconnectedUser(self: Self, disconnected_user: User) !void {
+        if (disconnected_user.username.len == 0) return;
         const disconnected_user_msg = try std.fmt.allocPrint(self.allocator, "* {s} has left the room\n", .{disconnected_user.username});
         defer self.allocator.free(disconnected_user_msg);
 
@@ -175,7 +175,8 @@ const ChatRoom = struct {
                 username = username[0..@min(username.len, 20)];
                 if (!username_regex.isMatch(username)) {
                     // username invalid, remove from users
-                    _ = users.remove(client.socket.address);
+                    const removed = users.remove(client.socket.address);
+                    std.log.debug("user with IP {any} removed {}", .{client.socket.address, removed});
                     return Client.Error.CloseConn;
                 }
 
