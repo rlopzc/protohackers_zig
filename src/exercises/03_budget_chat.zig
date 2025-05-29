@@ -75,7 +75,12 @@ const ChatRoom = struct {
     fn init(allocator: mem.Allocator) ChatRoom {
         return .{
             .allocator = allocator,
-            .users = std.HashMap(net.Address, User, AddressContext, std.hash_map.default_max_load_percentage).init(allocator),
+            .users = std.HashMap(
+                net.Address,
+                User,
+                AddressContext,
+                std.hash_map.default_max_load_percentage,
+            ).init(allocator),
         };
     }
 
