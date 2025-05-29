@@ -128,7 +128,7 @@ const ChatRoom = struct {
     }
 
     fn notifyDisconnectedUser(self: Self, disconnected_user: User) !void {
-        if (disconnected_user.username.len == 0) return;
+        std.log.debug("disconnecting username {s}", .{disconnected_user.username});
         const disconnected_user_msg = try std.fmt.allocPrint(self.allocator, "* {s} has left the room\n", .{disconnected_user.username});
         defer self.allocator.free(disconnected_user_msg);
 
