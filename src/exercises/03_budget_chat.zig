@@ -129,11 +129,8 @@ const ChatRoom = struct {
 
     fn notifyDisconnectedUser(self: Self, disconnected_user: User) !void {
         if (!disconnected_user.isChatting()) return;
-        std.log.debug("disconnecting username {s}", .{disconnected_user.username});
         const disconnected_user_msg = try std.fmt.allocPrint(self.allocator, "* {s} has left the room\n", .{disconnected_user.username});
         defer self.allocator.free(disconnected_user_msg);
-
-        log.debug("{s} removed", .{disconnected_user.username});
 
         var it = self.users.valueIterator();
         while (it.next()) |user| {
@@ -179,7 +176,7 @@ const ChatRoom = struct {
                 user.username = try self.allocator.dupe(u8, username);
                 user.state = .chatting;
 
-                std.log.debug("set username: {s}", .{user.username});
+                std.log.debug("set client {} username: {s}", .{client.socket.address, user.username});
 
                 try self.notifyNewUser(user);
             },
