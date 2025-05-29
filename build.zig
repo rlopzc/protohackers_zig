@@ -23,6 +23,13 @@ pub fn build(b: *std.Build) void {
         .optimize = optimize,
     });
 
+    // mvzr regex dependency
+    const mvzr = b.dependency("mvzr", .{
+        .target = target,
+        .optimize = optimize,
+    });
+    exe_mod.addImport("mvzr", mvzr.module("mvzr"));
+
     // This creates another `std.Build.Step.Compile`, but this one builds an executable
     // rather than a static library.
     const exe = b.addExecutable(.{
