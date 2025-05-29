@@ -2,6 +2,7 @@ const std = @import("std");
 const log = std.log.scoped(.budget_chat);
 const net = std.net;
 const mem = std.mem;
+const mvzr = @import("mvzr");
 
 const TcpServer = @import("../tcp_server.zig").TcpServer;
 const Client = @import("../client.zig").Client;
@@ -48,6 +49,13 @@ const User = struct {
         return self.state == .chatting;
     }
 };
+
+// The first message from a client sets the user's name, which must contain at
+// least 1 character, and must consist entirely of alphanumeric characters
+// (uppercase, lowercase, and digits).
+// Implementations may limit the maximum length of a name, but must allow at
+// least 16 characters.
+const username_regex: mvzr.Regex = mvzr.Regex.compile("^[a-zA-Z0-9]{1,}$").?;
 
 const ChatRoom = struct {
     allocator: mem.Allocator,
@@ -153,12 +161,12 @@ const ChatRoom = struct {
         switch (user.state) {
             UserState.setting_username => {
                 const username = std.mem.trimRight(u8, msg, "\r\n");
+                if (!username_regex.isMatch(username)) return Client.Error.CloseConn;
+
                 user.username = try self.allocator.dupe(u8, username);
                 user.state = .chatting;
 
                 std.log.debug("set username: {s}", .{user.username});
-
-                // TODO: check for username, at least 16 characters, just alphanumeric characters
 
                 try self.notifyNewUser(user);
             },
