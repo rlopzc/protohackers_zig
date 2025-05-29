@@ -161,7 +161,6 @@ const ChatRoom = struct {
                 // TODO: check for username, at least 16 characters, just alphanumeric characters
 
                 try self.notifyNewUser(user);
-                self.printUsers();
             },
             UserState.chatting => {
                 const chatMsg: []const u8 = try std.fmt.allocPrint(self.allocator, "[{s}] {s}", .{ user.username, msg });
