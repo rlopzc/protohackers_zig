@@ -123,6 +123,7 @@ const ChatRoom = struct {
         const self: *ChatRoom = @ptrCast(@alignCast(ptr));
         const users = &self.users;
         const removed = users.fetchRemove(client.socket.address);
+        std.log.debug("user removed? {any}", .{removed});
 
         if (removed) |entry| try self.notifyDisconnectedUser(entry.value);
     }
