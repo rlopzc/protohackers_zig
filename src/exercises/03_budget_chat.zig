@@ -59,7 +59,12 @@ const username_regex: mvzr.Regex = mvzr.Regex.compile("^[a-zA-Z0-9]{1,}$").?;
 
 const ChatRoom = struct {
     allocator: mem.Allocator,
-    users: std.HashMap(net.Address, User, AddressContext, std.hash_map.default_max_load_percentage),
+    users: std.HashMap(
+        net.Address,
+        User,
+        AddressContext,
+        std.hash_map.default_max_load_percentage,
+    ),
 
     const Self = @This();
 
@@ -167,7 +172,11 @@ const ChatRoom = struct {
             UserState.setting_username => {
                 var username = std.mem.trimRight(u8, msg, "\r\n");
                 username = username[0..@min(username.len, 20)];
-                if (!username_regex.isMatch(username)) return Client.Error.CloseConn;
+                if (!username_regex.isMatch(username)) {
+                    // username invalid, remove from users
+                    _ = users.remove(client.socket.address);
+                    return Client.Error.CloseConn;
+                }
 
                 user.username = try self.allocator.dupe(u8, username);
                 user.state = .chatting;
