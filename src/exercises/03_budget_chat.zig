@@ -165,7 +165,8 @@ const ChatRoom = struct {
 
         switch (user.state) {
             UserState.setting_username => {
-                const username = std.mem.trimRight(u8, msg, "\r\n");
+                var username = std.mem.trimRight(u8, msg, "\r\n");
+                username = username[0..@min(username.len, 20)];
                 if (!username_regex.isMatch(username)) return Client.Error.CloseConn;
 
                 user.username = try self.allocator.dupe(u8, username);
