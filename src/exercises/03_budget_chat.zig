@@ -111,7 +111,7 @@ const ChatRoom = struct {
     fn onConnect(ptr: *anyopaque, client: *const Client) !void {
         const self: *ChatRoom = @ptrCast(@alignCast(ptr));
         const users = &self.users;
-        try users.put(client.socket.address, User{
+        try users.put(client.conn.address, User{
             .state = .setting_username,
             .username = undefined,
             .client = client,
@@ -122,7 +122,7 @@ const ChatRoom = struct {
     fn onDisconnect(ptr: *anyopaque, client: *const Client) !void {
         const self: *ChatRoom = @ptrCast(@alignCast(ptr));
         const users = &self.users;
-        const removed = users.fetchRemove(client.socket.address);
+        const removed = users.fetchRemove(client.conn.address);
 
         if (removed) |entry| try self.notifyDisconnectedUser(entry.value);
     }
@@ -151,7 +151,7 @@ const ChatRoom = struct {
 
         var it = users.iterator();
         while (it.next()) |entry| {
-            if (!entry.key_ptr.eql(new_user.client.socket.address) and entry.value_ptr.isChatting()) {
+            if (!entry.key_ptr.eql(new_user.client.conn.address) and entry.value_ptr.isChatting()) {
                 try entry.value_ptr.client.write(new_user_msg);
                 users_in_room_msg = try std.fmt.allocPrint(self.allocator, "{s} {s},", .{ users_in_room_msg, entry.value_ptr.username });
             }
@@ -165,7 +165,7 @@ const ChatRoom = struct {
         const self: *ChatRoom = @ptrCast(@alignCast(ptr));
         const users = &self.users;
 
-        const user: *User = users.getPtr(client.socket.address) orelse unreachable;
+        const user: *User = users.getPtr(client.conn.address) orelse unreachable;
 
         switch (user.state) {
             UserState.setting_username => {
@@ -176,7 +176,7 @@ const ChatRoom = struct {
                 user.username = try self.allocator.dupe(u8, username);
                 user.state = .chatting;
 
-                std.log.debug("set client {} username: {s}", .{client.socket.address, user.username});
+                std.log.debug("set client {} username: {s}", .{client.conn.address, user.username});
 
                 try self.notifyNewUser(user);
             },
@@ -186,7 +186,7 @@ const ChatRoom = struct {
 
                 var it = users.iterator();
                 while (it.next()) |entry| {
-                    if (!entry.key_ptr.eql(client.socket.address) and entry.value_ptr.isChatting()) {
+                    if (!entry.key_ptr.eql(client.conn.address) and entry.value_ptr.isChatting()) {
                         try entry.value_ptr.client.write(chatMsg);
                     }
                 }

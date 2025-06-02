@@ -25,12 +25,12 @@ pub const TcpServer = struct {
     }
 
     pub fn accept(self: *Self) !Client {
-        const socket = try self.server.accept();
+        const conn = try self.server.accept();
 
         const timeout = posix.timeval{ .sec = 20, .usec = 0 };
-        try posix.setsockopt(socket.stream.handle, posix.SOL.SOCKET, posix.SO.RCVTIMEO, &std.mem.toBytes(timeout));
-        try posix.setsockopt(socket.stream.handle, posix.SOL.SOCKET, posix.SO.SNDTIMEO, &std.mem.toBytes(timeout));
-        return Client.new(socket);
+        try posix.setsockopt(conn.stream.handle, posix.SOL.SOCKET, posix.SO.RCVTIMEO, &std.mem.toBytes(timeout));
+        try posix.setsockopt(conn.stream.handle, posix.SOL.SOCKET, posix.SO.SNDTIMEO, &std.mem.toBytes(timeout));
+        return Client.new(conn);
     }
 
     pub fn deinit(self: *Self) void {
