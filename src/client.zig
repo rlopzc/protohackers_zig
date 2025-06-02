@@ -7,31 +7,31 @@ const Reader = @import("buffered_reader.zig").Reader;
 const Runner = @import("runner.zig").Runner;
 
 pub const Client = struct {
-    socket: net.Server.Connection,
+    conn: net.Server.Connection,
 
     const Self = @This();
     pub const Error = error{
         CloseConn,
     };
 
-    pub fn new(socket: net.Server.Connection) !Self {
+    pub fn new(conn: net.Server.Connection) !Self {
         return .{
-            .socket = socket,
+            .conn = conn,
         };
     }
 
     pub fn write(self: Self, msg: []const u8) !void {
         // TODO: use buffered writer
-        log.info("client={} sending={}", .{ self.socket.address, std.zig.fmtEscapes(msg) });
-        _ = try self.socket.stream.writeAll(msg);
+        log.info("client={} sending={}", .{ self.conn.address, std.zig.fmtEscapes(msg) });
+        _ = try self.conn.stream.writeAll(msg);
     }
 
     fn deinit(self: Self) void {
-        self.socket.stream.close();
+        self.conn.stream.close();
     }
 
     pub fn run(self: Self, runner: Runner) !void {
-        log.info("client {} connected", .{self.socket.address});
+        log.info("client {} connected", .{self.conn.address});
         defer self.deinit();
 
         try runner.onConnect(&self);
@@ -40,18 +40,18 @@ pub const Client = struct {
         var reader = Reader{
             .pos = 0,
             .buf = &buf,
-            .stream = self.socket.stream,
+            .stream = self.conn.stream,
             .delimiterFinderFn = runner.delimiterFinderFn,
         };
 
         while (true) {
             const msg = reader.readMessage() catch break;
-            log.info("client={} received={}", .{ self.socket.address, std.zig.fmtEscapes(msg) });
+            log.info("client={} received={}", .{ self.conn.address, std.zig.fmtEscapes(msg) });
             runner.callback(msg, &self) catch break;
         }
 
         try runner.onDisconnect(&self);
 
-        log.info("client {} disconnected", .{self.socket.address});
+        log.info("client {} disconnected", .{self.conn.address});
     }
 };
