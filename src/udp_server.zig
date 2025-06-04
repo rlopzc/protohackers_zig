@@ -15,23 +15,11 @@ pub const UdpServer = struct {
 
         try posix.setsockopt(sock, posix.SOL.SOCKET, posix.SO.REUSEADDR, &std.mem.toBytes(@as(c_int, 1)));
         try posix.bind(sock, &addr.any, addr.getOsSockLen());
-        try posix.listen(sock, 128);
 
         return .{ .sock = sock };
     }
 
-    pub fn accept(self: Self) !Client {
-        var client_addr: net.Address = undefined;
-        var client_address_len: posix.socklen_t = @sizeOf(net.Address);
-
-        const client_sock: posix.socket_t = try posix.accept(self.sock, &client_addr.any, &client_address_len, 0);
-        const stream = net.Stream{ .handle = client_sock };
-        const conn = net.Server.Connection{ .stream = stream, .address = client_addr };
-
-        return Client.new(conn);
-    }
-
-    pub fn deinit(self: Self) void {
+    pub fn deinit(self: *Self) void {
         posix.close(self.sock);
     }
 };
