@@ -9,6 +9,7 @@ const smoke_test = @import("exercises/00_smoke_test.zig");
 const prime_time = @import("exercises/01_prime_time.zig");
 const means_to_an_end = @import("exercises/02_means_to_an_end.zig");
 const budget_chat = @import("exercises/03_budget_chat.zig");
+const unusual_database = @import("exercises/04_unusual_database.zig");
 
 pub fn main() !void {
     var gpa = std.heap.GeneralPurposeAllocator(.{}){};
@@ -43,6 +44,10 @@ pub fn main() !void {
         3 => {
             log.info("Running 03 - Budget Chat", .{});
             try budget_chat.main();
+        },
+        4 => {
+            log.info("Running 04 - Unusual Database", .{});
+            try unusual_database.main();
         },
         else => {
             log.err("test not found, try: 00, 01, ...", .{});
