@@ -18,7 +18,7 @@ pub fn main() !void {
     var buf: [1024]u8 = undefined;
 
     while (true) {
-        const read_bytes: usize = try posix.recvfrom(server.sock, buf[0..], 4, &client_addr, &client_addr_len);
+        const read_bytes: usize = try posix.recvfrom(server.sock, buf[0..], 0, &client_addr, &client_addr_len);
         log.debug("received: {s}", .{buf[0..read_bytes]});
 
         if (std.mem.indexOfScalar(u8, buf[0..read_bytes], '=')) |pos| {
@@ -41,8 +41,5 @@ pub fn main() !void {
             log.debug("sending: {s}", .{resp});
             _ = try posix.sendto(server.sock, resp, 0, &client_addr, client_addr_len);
         }
-
-        // clear buffer
-        buf = undefined;
     }
 }
