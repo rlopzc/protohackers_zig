@@ -5,8 +5,6 @@ const posix = std.posix;
 const UdpServer = @import("../udp_server.zig").UdpServer;
 const Client = @import("../client.zig").Client;
 
-const SmokeTestRunner = @import("00_smoke_test.zig").SmokeTestRunner;
-
 pub fn main() !void {
     var server: UdpServer = try UdpServer.start(3001);
     defer server.deinit();
