@@ -7,6 +7,7 @@ const Client = @import("client.zig").Client;
 
 pub const UdpServer = struct {
     sock: posix.socket_t,
+    addr: net.Address,
 
     const Self = @This();
 
@@ -18,7 +19,10 @@ pub const UdpServer = struct {
         try posix.setsockopt(sock, posix.SOL.SOCKET, posix.SO.REUSEADDR, &std.mem.toBytes(@as(c_int, 1)));
         try posix.bind(sock, &addr.any, addr.getOsSockLen());
 
-        return .{ .sock = sock };
+        return .{
+            .sock = sock,
+            .addr = addr,
+        };
     }
 
     pub fn deinit(self: *Self) void {

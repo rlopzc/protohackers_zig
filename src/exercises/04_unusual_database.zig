@@ -14,12 +14,13 @@ pub fn main() !void {
     defer keyval.deinit();
 
     var client_addr: posix.sockaddr = undefined;
-    var client_addr_len: posix.socklen_t = undefined;
+    var client_addr_len: posix.socklen_t = server.addr.getOsSockLen();
     var buf: [1024]u8 = undefined;
 
     while (true) {
-        const read_bytes: usize = try posix.recvfrom(server.sock, buf[0..], 0, &client_addr, &client_addr_len);
+        const read_bytes: usize = try posix.recvfrom(server.sock, buf[0..], 4, &client_addr, &client_addr_len);
         log.debug("received: {s}", .{buf[0..read_bytes]});
+
         if (std.mem.indexOfScalar(u8, buf[0..read_bytes], '=')) |pos| {
             // Insert Op
             try keyval.put(buf[0..pos], buf[(pos + 1)..read_bytes]);
