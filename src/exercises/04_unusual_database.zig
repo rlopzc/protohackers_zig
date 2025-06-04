@@ -41,5 +41,8 @@ pub fn main() !void {
             log.debug("sending: {s}", .{resp});
             _ = try posix.sendto(server.sock, resp, 0, &client_addr, client_addr_len);
         }
+
+        // clear buffer
+        buf = undefined;
     }
 }
