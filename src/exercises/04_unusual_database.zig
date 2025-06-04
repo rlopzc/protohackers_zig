@@ -6,7 +6,7 @@ const UdpServer = @import("../udp_server.zig").UdpServer;
 const Client = @import("../client.zig").Client;
 
 pub fn main() !void {
-    var server: UdpServer = try UdpServer.start(3001);
+    var server: UdpServer = try UdpServer.start(3005);
     defer server.deinit();
 
     var gpa = std.heap.GeneralPurposeAllocator(.{}){};
@@ -19,10 +19,15 @@ pub fn main() !void {
 
     while (true) {
         const read_bytes: usize = try posix.recvfrom(server.sock, buf[0..], 0, &client_addr, &client_addr_len);
-        log.debug("received: {s}", .{buf[0..(read_bytes - 1)]});
+        log.debug("received: {s}", .{buf[0..read_bytes]});
         if (std.mem.indexOfScalar(u8, buf[0..read_bytes], '=')) |pos| {
             // Insert Op
-            try keyval.put(buf[0..pos], buf[pos..read_bytes]);
+            try keyval.put(buf[0..pos], buf[(pos + 1)..read_bytes]);
+            var it = keyval.iterator();
+            while (it.next()) |entry| {
+                std.debug.print("[{s} => {s}], ", .{ entry.key_ptr.*, entry.value_ptr.* });
+            }
+            std.debug.print("\n", .{});
         } else {
             // Retrieve Op
             var resp = try std.mem.concat(gpa.allocator(), u8, &.{ buf[0..read_bytes], "=" });
