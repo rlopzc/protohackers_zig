@@ -19,12 +19,12 @@ pub fn main() !void {
 
     while (true) {
         const read_bytes: usize = try posix.recvfrom(server.sock, buf[0..], 0, &client_addr, &client_addr_len);
-        log.debug("buffer: {s}", .{buf[0..]});
         log.debug("received: {s}", .{buf[0..read_bytes]});
 
         if (std.mem.indexOfScalar(u8, buf[0..read_bytes], '=')) |pos| {
             // Insert Op
             // TODO: allocation fails put
+            std.debug.print("key: {s} ; val: {s}\n", .{ buf[0..pos], buf[(pos + 1)..read_bytes] });
             try keyval.put(buf[0..pos], buf[(pos + 1)..read_bytes]);
             var it = keyval.iterator();
             while (it.next()) |entry| {
