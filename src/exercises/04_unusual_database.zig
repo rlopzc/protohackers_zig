@@ -23,12 +23,13 @@ pub fn main() !void {
 
         if (std.mem.indexOfScalar(u8, buf[0..read_bytes], '=')) |pos| {
             // Insert Op
+            // TODO: allocation fails put
             try keyval.put(buf[0..pos], buf[(pos + 1)..read_bytes]);
             var it = keyval.iterator();
             while (it.next()) |entry| {
                 std.debug.print("[{s} => {s}], ", .{ entry.key_ptr.*, entry.value_ptr.* });
             }
-            std.debug.print("\n", .{});
+            std.debug.print("items: {} \n", .{keyval.count()});
         } else {
             // Retrieve Op
             var resp = try std.mem.concat(gpa.allocator(), u8, &.{ buf[0..read_bytes], "=" });
