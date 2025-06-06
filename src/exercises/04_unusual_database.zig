@@ -19,6 +19,7 @@ pub fn main() !void {
 
     while (true) {
         const read_bytes: usize = try posix.recvfrom(server.sock, buf[0..], 0, &client_addr, &client_addr_len);
+        log.debug("buffer: {s}", .{buf[0..]});
         log.debug("received: {s}", .{buf[0..read_bytes]});
 
         if (std.mem.indexOfScalar(u8, buf[0..read_bytes], '=')) |pos| {
