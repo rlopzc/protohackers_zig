@@ -6,8 +6,8 @@ const TcpClient = @import("../tcp_client.zig").TcpClient;
 const Client = @import("../client.zig").Client;
 const Runner = @import("../runner.zig").Runner;
 
-const UPSTREAM_SERVER = "chat.protohackers.com";
-const UPSTREAM_PORT = 16963;
+const UPSTREAM_SERVER = "localhost";
+const UPSTREAM_PORT = 3005;
 
 pub fn main() !void {
     var server = try TcpServer.start(3000);
@@ -60,7 +60,12 @@ const MobInTheMiddleRunner = struct {
         const tcp_client = try TcpClient.connect(self.allocator, UPSTREAM_SERVER, UPSTREAM_PORT);
         self.tcp_client = tcp_client;
 
+        var ns = try std.time.Timer.start();
+        // TODO: check local. Upstream sends a msg, but we read it after tcp server timeout: 20 secs
         const read_bytes = try self.tcp_client.rcv(self.buf[0..]);
+        const lapsed = ns.read();
+        log.debug("rcv: {s} - afer {}", .{ self.buf[0..read_bytes], lapsed });
+
         try client.write(self.buf[0..read_bytes]);
     }
 

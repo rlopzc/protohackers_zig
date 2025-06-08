@@ -9,7 +9,7 @@ const Client = @import("../client.zig").Client;
 const Runner = @import("../runner.zig").Runner;
 
 pub fn main() !void {
-    var server = TcpServer.start(3000) catch std.process.exit(1);
+    var server = TcpServer.start(3005) catch std.process.exit(1);
     defer server.deinit();
 
     var gpa = std.heap.GeneralPurposeAllocator(.{}){};

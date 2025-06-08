@@ -9,6 +9,7 @@ pub const TcpClient = struct {
 
     pub fn connect(allocator: std.mem.Allocator, host: []const u8, port: u16) !Self {
         const stream = try net.tcpConnectToHost(allocator, host, port);
+        log.debug("connected to {s}:{}", .{ host, port });
 
         return .{
             .stream = stream,
@@ -20,7 +21,7 @@ pub const TcpClient = struct {
     }
 
     pub fn rcv(self: Self, buf: []u8) !usize {
-        return try self.stream.readAll(buf);
+        return try self.stream.readAll(buf[0..]);
     }
 
     pub fn deinit(self: Self) void {
