@@ -10,6 +10,7 @@ const prime_time = @import("exercises/01_prime_time.zig");
 const means_to_an_end = @import("exercises/02_means_to_an_end.zig");
 const budget_chat = @import("exercises/03_budget_chat.zig");
 const unusual_database = @import("exercises/04_unusual_database.zig");
+const mob_in_the_middle = @import("exercises/05_mob_in_the_middle.zig");
 
 pub fn main() !void {
     var gpa = std.heap.GeneralPurposeAllocator(.{}){};
@@ -48,6 +49,10 @@ pub fn main() !void {
         4 => {
             log.info("Running 04 - Unusual Database", .{});
             try unusual_database.main();
+        },
+        5 => {
+            log.info("Running 05 - Mob in the Middle", .{});
+            try mob_in_the_middle.main();
         },
         else => {
             log.err("test not found, try: 00, 01, ...", .{});
