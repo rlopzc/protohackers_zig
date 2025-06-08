@@ -7,7 +7,7 @@ const Client = @import("../client.zig").Client;
 const version: []const u8 = "version=Ken's Key-Value Store 1.0";
 
 pub fn main() !void {
-    var server: UdpServer = try UdpServer.start(3005);
+    var server: UdpServer = try UdpServer.start(3000);
     defer server.deinit();
 
     var gpa = std.heap.GeneralPurposeAllocator(.{}){};
