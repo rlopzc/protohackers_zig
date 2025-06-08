@@ -10,8 +10,19 @@ pub fn main() !void {
     defer server.deinit();
 
     var gpa = std.heap.GeneralPurposeAllocator(.{}){};
-    var keyval = std.StringHashMap([]const u8).init(gpa.allocator());
-    defer keyval.deinit();
+    const allocator: std.mem.Allocator = gpa.allocator();
+
+    var keyval = std.StringHashMap([]const u8).init(allocator);
+
+    // TODO defer deallocate key and val
+    defer {
+        var it = keyval.iterator();
+        while (it.next()) |entry| {
+            allocator.free(entry.key_ptr.*);
+            allocator.free(entry.value_ptr.*);
+        }
+        keyval.deinit();
+    }
 
     var client_addr: posix.sockaddr = undefined;
     var client_addr_len: posix.socklen_t = server.addr.getOsSockLen();
@@ -23,9 +34,12 @@ pub fn main() !void {
 
         if (std.mem.indexOfScalar(u8, buf[0..read_bytes], '=')) |pos| {
             // Insert Op
-            // TODO: allocation fails put
             std.debug.print("key: {s} ; val: {s}\n", .{ buf[0..pos], buf[(pos + 1)..read_bytes] });
-            try keyval.put(buf[0..pos], buf[(pos + 1)..read_bytes]);
+
+            const key = try allocator.dupe(u8, buf[0..pos]);
+            const val = try allocator.dupe(u8, buf[(pos + 1)..read_bytes]);
+            try keyval.put(key, val);
+
             var it = keyval.iterator();
             while (it.next()) |entry| {
                 std.debug.print("[{s} => {s}], ", .{ entry.key_ptr.*, entry.value_ptr.* });
@@ -33,11 +47,11 @@ pub fn main() !void {
             std.debug.print("items: {} \n", .{keyval.count()});
         } else {
             // Retrieve Op
-            var resp = try std.mem.concat(gpa.allocator(), u8, &.{ buf[0..read_bytes], "=" });
-            defer gpa.allocator().free(resp);
+            var resp = try std.mem.concat(allocator, u8, &.{ buf[0..read_bytes], "=" });
+            defer allocator.free(resp);
 
             if (keyval.get(buf[0..read_bytes])) |val| {
-                resp = try std.mem.concat(gpa.allocator(), u8, &.{ resp, val });
+                resp = try std.mem.concat(allocator, u8, &.{ resp, val });
             }
 
             log.debug("sending: {s}", .{resp});
