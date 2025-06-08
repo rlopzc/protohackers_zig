@@ -19,7 +19,11 @@ pub const TcpClient = struct {
         try self.stream.writeAll(msg);
     }
 
-    pub fn deinit(self: Self) !void {
+    pub fn rcv(self: Self, buf: []u8) !usize {
+        return try self.stream.readAll(buf);
+    }
+
+    pub fn deinit(self: Self) void {
         self.stream.close();
     }
 };
