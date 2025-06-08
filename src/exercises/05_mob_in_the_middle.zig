@@ -61,20 +61,30 @@ const MobInTheMiddleRunner = struct {
 
     fn onConnect(ptr: *anyopaque, client: *const Client) !void {
         const self: *Self = @ptrCast(@alignCast(ptr));
-
-        const read_bytes = try self.tcp_client.rcv(self.buf[0..]);
-        log.debug("rcv: {}", .{std.zig.fmtEscapes(self.buf[0..read_bytes])});
-
-        try client.write(self.buf[0..read_bytes]);
+        _ = try std.Thread.spawn(.{}, Self.upstreamReadLoop, .{ self, client });
     }
 
-    fn callback(ptr: *anyopaque, msg: []const u8, client: *const Client) !void {
+    fn callback(ptr: *anyopaque, msg: []const u8, _: *const Client) !void {
         const self: *Self = @ptrCast(@alignCast(ptr));
         try self.tcp_client.send(msg);
+    }
 
-        const read_bytes = try self.tcp_client.rcv(self.buf[0..]);
-        log.debug("rcv: {}", .{std.zig.fmtEscapes(self.buf[0..read_bytes])});
-        try client.write(self.buf[0..read_bytes]);
+    fn upstreamReadLoop(self: *Self, client: *const Client) !void {
+        var buf: [1024]u8 = undefined;
+
+        while (true) {
+            const n = self.tcp_client.rcv(&buf) catch {
+                log.warn("Upstream read error, closing loop", .{});
+                break;
+            };
+            if (n == 0) break; // connection closed
+
+            log.debug("Async rcv from upstream: {}", .{std.zig.fmtEscapes(buf[0..n])});
+            _ = client.write(buf[0..n]) catch {
+                log.warn("Client write error", .{});
+                break;
+            };
+        }
     }
 
     fn runner(self: *Self) Runner {
