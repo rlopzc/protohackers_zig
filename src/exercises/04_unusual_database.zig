@@ -4,6 +4,7 @@ const posix = std.posix;
 
 const UdpServer = @import("../udp_server.zig").UdpServer;
 const Client = @import("../client.zig").Client;
+const version: []const u8 = "version=Ken's Key-Value Store 1.0";
 
 pub fn main() !void {
     var server: UdpServer = try UdpServer.start(3005);
@@ -13,8 +14,6 @@ pub fn main() !void {
     const allocator: std.mem.Allocator = gpa.allocator();
 
     var keyval = std.StringHashMap([]const u8).init(allocator);
-
-    // TODO defer deallocate key and val
     defer {
         var it = keyval.iterator();
         while (it.next()) |entry| {
@@ -47,6 +46,11 @@ pub fn main() !void {
             std.debug.print("items: {} \n", .{keyval.count()});
         } else {
             // Retrieve Op
+            if (std.mem.eql(u8, "version", buf[0..read_bytes])) {
+                _ = try posix.sendto(server.sock, version, 0, &client_addr, client_addr_len);
+                return;
+            }
+
             var resp = try std.mem.concat(allocator, u8, &.{ buf[0..read_bytes], "=" });
             defer allocator.free(resp);
 
