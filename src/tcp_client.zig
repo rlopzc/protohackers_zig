@@ -17,11 +17,11 @@ pub const TcpClient = struct {
     }
 
     pub fn send(self: Self, msg: []const u8) !void {
-        try self.stream.writeAll(msg);
+        _ = try self.stream.write(msg);
     }
 
     pub fn rcv(self: Self, buf: []u8) !usize {
-        return try self.stream.readAll(buf[0..]);
+        return try self.stream.read(buf[0..]);
     }
 
     pub fn deinit(self: Self) void {

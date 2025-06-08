@@ -60,11 +60,8 @@ const MobInTheMiddleRunner = struct {
         const tcp_client = try TcpClient.connect(self.allocator, UPSTREAM_SERVER, UPSTREAM_PORT);
         self.tcp_client = tcp_client;
 
-        var ns = try std.time.Timer.start();
-        // TODO: check local. Upstream sends a msg, but we read it after tcp server timeout: 20 secs
         const read_bytes = try self.tcp_client.rcv(self.buf[0..]);
-        const lapsed = ns.read();
-        log.debug("rcv: {s} - afer {}", .{ self.buf[0..read_bytes], lapsed });
+        log.debug("rcv: {s}", .{self.buf[0..read_bytes]});
 
         try client.write(self.buf[0..read_bytes]);
     }
