@@ -48,7 +48,7 @@ pub fn main() !void {
             // Retrieve Op
             if (std.mem.eql(u8, "version", buf[0..read_bytes])) {
                 _ = try posix.sendto(server.sock, version, 0, &client_addr, client_addr_len);
-                return;
+                continue;
             }
 
             var resp = try std.mem.concat(allocator, u8, &.{ buf[0..read_bytes], "=" });
