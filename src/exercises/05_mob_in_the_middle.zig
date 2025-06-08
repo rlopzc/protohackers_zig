@@ -19,7 +19,8 @@ pub fn main() !void {
     while (true) {
         const client = try server.accept();
 
-        var mob_in_the_middle = try MobInTheMiddleRunner.init(allocator);
+        const mob_in_the_middle = try allocator.create(MobInTheMiddleRunner);
+        mob_in_the_middle.* = try MobInTheMiddleRunner.init(allocator);
         const runner = mob_in_the_middle.runner();
 
         const thread = try std.Thread.spawn(.{}, Client.run, .{
@@ -37,14 +38,17 @@ const MobInTheMiddleRunner = struct {
     const Self = @This();
 
     fn init(allocator: std.mem.Allocator) !Self {
+        const tcp_client = try TcpClient.connect(allocator, UPSTREAM_SERVER, UPSTREAM_PORT);
         return .{
             .allocator = allocator,
+            .tcp_client = tcp_client,
         };
     }
 
     fn deinit(ptr: *anyopaque) void {
         const self: *Self = @ptrCast(@alignCast(ptr));
         self.tcp_client.deinit();
+        self.allocator.destroy(self);
     }
 
     fn delimiterFinder(unprocessed: []u8) ?usize {
@@ -57,11 +61,9 @@ const MobInTheMiddleRunner = struct {
 
     fn onConnect(ptr: *anyopaque, client: *const Client) !void {
         const self: *Self = @ptrCast(@alignCast(ptr));
-        const tcp_client = try TcpClient.connect(self.allocator, UPSTREAM_SERVER, UPSTREAM_PORT);
-        self.tcp_client = tcp_client;
 
         const read_bytes = try self.tcp_client.rcv(self.buf[0..]);
-        log.debug("rcv: {s}", .{self.buf[0..read_bytes]});
+        log.debug("rcv: {}", .{std.zig.fmtEscapes(self.buf[0..read_bytes])});
 
         try client.write(self.buf[0..read_bytes]);
     }
@@ -71,6 +73,7 @@ const MobInTheMiddleRunner = struct {
         try self.tcp_client.send(msg);
 
         const read_bytes = try self.tcp_client.rcv(self.buf[0..]);
+        log.debug("rcv: {}", .{std.zig.fmtEscapes(self.buf[0..read_bytes])});
         try client.write(self.buf[0..read_bytes]);
     }
 
