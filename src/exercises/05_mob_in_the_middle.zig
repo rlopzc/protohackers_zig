@@ -31,6 +31,7 @@ pub fn main() !void {
 
 const MobInTheMiddleRunner = struct {
     tcp_client: TcpClient,
+    buf: [1024]u8 = undefined,
 
     const Self = @This();
 
@@ -55,13 +56,18 @@ const MobInTheMiddleRunner = struct {
         return null;
     }
 
+    fn onConnect(ptr: *anyopaque, client: *const Client) !void {
+        const self: *Self = @ptrCast(@alignCast(ptr));
+        const read_bytes = try self.tcp_client.rcv(self.buf[0..]);
+        try client.write(self.buf[0..read_bytes]);
+    }
+
     fn callback(ptr: *anyopaque, msg: []const u8, client: *const Client) !void {
         const self: *Self = @ptrCast(@alignCast(ptr));
         try self.tcp_client.send(msg);
-        var buf: [1024]u8 = undefined;
 
-        const read_bytes = try self.tcp_client.rcv(buf[0..]);
-        try client.write(buf[0..read_bytes]);
+        const read_bytes = try self.tcp_client.rcv(self.buf[0..]);
+        try client.write(self.buf[0..read_bytes]);
     }
 
     fn runner(self: *Self) Runner {
@@ -70,6 +76,7 @@ const MobInTheMiddleRunner = struct {
             .callbackFn = callback,
             .delimiterFinderFn = delimiterFinder,
             .deinitFn = deinit,
+            .onConnectFn = onConnect,
         };
     }
 };
