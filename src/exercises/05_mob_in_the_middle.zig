@@ -30,16 +30,15 @@ pub fn main() !void {
 }
 
 const MobInTheMiddleRunner = struct {
-    tcp_client: TcpClient,
+    allocator: std.mem.Allocator,
+    tcp_client: TcpClient = undefined,
     buf: [1024]u8 = undefined,
 
     const Self = @This();
 
     fn init(allocator: std.mem.Allocator) !Self {
-        const tcp_client = try TcpClient.connect(allocator, UPSTREAM_SERVER, UPSTREAM_PORT);
-
         return .{
-            .tcp_client = tcp_client,
+            .allocator = allocator,
         };
     }
 
@@ -58,6 +57,9 @@ const MobInTheMiddleRunner = struct {
 
     fn onConnect(ptr: *anyopaque, client: *const Client) !void {
         const self: *Self = @ptrCast(@alignCast(ptr));
+        const tcp_client = try TcpClient.connect(self.allocator, UPSTREAM_SERVER, UPSTREAM_PORT);
+        self.tcp_client = tcp_client;
+
         const read_bytes = try self.tcp_client.rcv(self.buf[0..]);
         try client.write(self.buf[0..read_bytes]);
     }
