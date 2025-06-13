@@ -83,7 +83,7 @@ const MobInTheMiddleRunner = struct {
         var buf: [1024]u8 = undefined;
 
         while (true) {
-            const n = self.tcp_client.rcv(&buf) catch {
+            var n = self.tcp_client.rcv(&buf) catch {
                 log.warn("Upstream read error, closing loop", .{});
                 break;
             };
@@ -91,7 +91,16 @@ const MobInTheMiddleRunner = struct {
 
             // Rewrite coin address
             if (BOGUSCOIN_ADDR_REGEX.match(buf[0..n])) |match| {
-                std.mem.copyForwards(u8, buf[match.start..match.end], TONY_ADDR);
+                var len = match.start;
+                const end_buff = buf[match.end..n];
+
+                std.mem.copyForwards(u8, buf[len..][0..TONY_ADDR.len], TONY_ADDR);
+                len += TONY_ADDR.len;
+
+                std.mem.copyForwards(u8, buf[len..][0..end_buff.len], end_buff);
+                len += end_buff.len;
+
+                n = len;
             }
 
             log.debug("Async rcv from upstream: {}", .{std.zig.fmtEscapes(buf[0..n])});
