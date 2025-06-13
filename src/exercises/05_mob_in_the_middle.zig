@@ -1,5 +1,6 @@
 const std = @import("std");
 const log = std.log.scoped(.mob_in_the_middle);
+const mvzr = @import("mvzr");
 
 const TcpServer = @import("../tcp_server.zig").TcpServer;
 const TcpClient = @import("../tcp_client.zig").TcpClient;
@@ -29,6 +30,15 @@ pub fn main() !void {
         thread.detach();
     }
 }
+
+// A substring is considered to be a Boguscoin address if it satisfies all of:
+// it starts with a "7"
+// it consists of at least 26, and at most 35, alphanumeric characters
+// it starts at the start of a chat message, or is preceded by a space
+// it ends at the end of a chat message, or is followed by a space
+// You should rewrite all Boguscoin addresses to Tony's address, which is 7YWHMfk9JZe0LM0g1ZauHuiSxhI.
+const BOGUSCOIN_ADDR_REGEX: mvzr.Regex = mvzr.Regex.compile("7[a-zA-Z0-9]{25,35}").?;
+const TONY_ADDR = "7YWHMfk9JZe0LM0g1ZauHuiSxhI";
 
 const MobInTheMiddleRunner = struct {
     allocator: std.mem.Allocator,
@@ -78,6 +88,11 @@ const MobInTheMiddleRunner = struct {
                 break;
             };
             if (n == 0) break; // connection closed
+
+            // Rewrite coin address
+            if (BOGUSCOIN_ADDR_REGEX.match(buf[0..n])) |match| {
+                std.mem.copyForwards(u8, buf[match.start..match.end], TONY_ADDR);
+            }
 
             log.debug("Async rcv from upstream: {}", .{std.zig.fmtEscapes(buf[0..n])});
             _ = client.write(buf[0..n]) catch {
