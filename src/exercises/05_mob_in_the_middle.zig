@@ -93,6 +93,7 @@ const MobInTheMiddleRunner = struct {
 
             // Rewrite coin address
             if (BOGUSCOIN_ADDR_REGEX.match(buf[0..n])) |match| {
+                log.debug("changing address {s}", .{match.slice});
                 var len = match.start;
                 const end_buff = buf[(match.end + 1)..n];
 
