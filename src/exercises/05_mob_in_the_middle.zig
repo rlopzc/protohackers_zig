@@ -89,10 +89,12 @@ const MobInTheMiddleRunner = struct {
             };
             if (n == 0) break; // connection closed
 
+            log.debug("async rcv from upstream: {}", .{std.zig.fmtEscapes(buf[0..n])});
+
             // Rewrite coin address
             if (BOGUSCOIN_ADDR_REGEX.match(buf[0..n])) |match| {
                 var len = match.start;
-                const end_buff = buf[match.end..n];
+                const end_buff = buf[(match.end + 1)..n];
 
                 std.mem.copyForwards(u8, buf[len..][0..TONY_ADDR.len], TONY_ADDR);
                 len += TONY_ADDR.len;
@@ -103,7 +105,6 @@ const MobInTheMiddleRunner = struct {
                 n = len;
             }
 
-            log.debug("Async rcv from upstream: {}", .{std.zig.fmtEscapes(buf[0..n])});
             _ = client.write(buf[0..n]) catch {
                 log.warn("Client write error", .{});
                 break;
