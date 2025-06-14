@@ -27,7 +27,7 @@ pub const TcpServer = struct {
     pub fn accept(self: *Self) !Client {
         const conn = try self.server.accept();
 
-        const timeout = posix.timeval{ .sec = 20, .usec = 0 };
+        const timeout = posix.timeval{ .sec = 60, .usec = 0 };
         try posix.setsockopt(conn.stream.handle, posix.SOL.SOCKET, posix.SO.RCVTIMEO, &std.mem.toBytes(timeout));
         try posix.setsockopt(conn.stream.handle, posix.SOL.SOCKET, posix.SO.SNDTIMEO, &std.mem.toBytes(timeout));
         return Client.new(conn);
