@@ -1,14 +1,15 @@
 const std = @import("std");
 const log = std.log.scoped(.mob_in_the_middle);
 const mvzr = @import("mvzr");
+const testing = std.testing;
 
 const TcpServer = @import("../tcp_server.zig").TcpServer;
 const TcpClient = @import("../tcp_client.zig").TcpClient;
 const Client = @import("../client.zig").Client;
 const Runner = @import("../runner.zig").Runner;
 
-const UPSTREAM_SERVER = "chat.protohackers.com";
-const UPSTREAM_PORT = 16963;
+const UPSTREAM_SERVER = "localhost";
+const UPSTREAM_PORT = 3005;
 
 pub fn main() !void {
     var server = try TcpServer.start(3000);
@@ -37,7 +38,7 @@ pub fn main() !void {
 // it starts at the start of a chat message, or is preceded by a space
 // it ends at the end of a chat message, or is followed by a space
 // You should rewrite all Boguscoin addresses to Tony's address, which is 7YWHMfk9JZe0LM0g1ZauHuiSxhI.
-const BOGUSCOIN_ADDR_REGEX: mvzr.Regex = mvzr.Regex.compile("7[a-zA-Z0-9]{25,35}").?;
+const BOGUSCOIN_ADDR_REGEX: mvzr.Regex = mvzr.Regex.compile("7[a-zA-Z0-9]{25,35}+").?;
 const TONY_ADDR = "7YWHMfk9JZe0LM0g1ZauHuiSxhI";
 
 const MobInTheMiddleRunner = struct {
@@ -83,30 +84,21 @@ const MobInTheMiddleRunner = struct {
         var buf: [1024]u8 = undefined;
 
         while (true) {
-            var n = self.tcp_client.rcv(&buf) catch {
+            var read_bytes = self.tcp_client.rcv(&buf) catch {
                 log.warn("Upstream read error, closing loop", .{});
                 break;
             };
-            if (n == 0) break; // connection closed
+            if (read_bytes == 0) break; // connection closed
 
-            log.debug("async rcv from upstream: {}", .{std.zig.fmtEscapes(buf[0..n])});
+            log.debug("async rcv from upstream: {}", .{std.zig.fmtEscapes(buf[0..read_bytes])});
 
             // Rewrite coin address
-            if (BOGUSCOIN_ADDR_REGEX.match(buf[0..n])) |match| {
+            if (BOGUSCOIN_ADDR_REGEX.match(buf[0..read_bytes])) |match| {
                 log.debug("changing address {s}", .{match.slice});
-                var len = match.start;
-                const end_buff = buf[(match.end + 1)..n];
-
-                std.mem.copyForwards(u8, buf[len..][0..TONY_ADDR.len], TONY_ADDR);
-                len += TONY_ADDR.len;
-
-                std.mem.copyForwards(u8, buf[len..][0..end_buff.len], end_buff);
-                len += end_buff.len;
-
-                n = len;
+                read_bytes = rewriteCoinAddress(buf[0..read_bytes], match);
             }
 
-            _ = client.write(buf[0..n]) catch {
+            _ = client.write(buf[0..read_bytes]) catch {
                 log.warn("Client write error", .{});
                 break;
             };
@@ -123,3 +115,39 @@ const MobInTheMiddleRunner = struct {
         };
     }
 };
+
+fn rewriteCoinAddress(buf: []u8, match: mvzr.Match) usize {
+    var len = match.start;
+    log.debug("\nmatch: {}\n", .{match});
+    const end_buff = buf[match.end..];
+
+    log.debug("end_buff len: {d} {}\n", .{ end_buff.len, std.zig.fmtEscapes(end_buff) });
+
+    std.mem.copyForwards(u8, buf[len..][0..TONY_ADDR.len], TONY_ADDR);
+    len += TONY_ADDR.len;
+
+    log.debug("buff len: {d} new: {}", .{ len, std.zig.fmtEscapes(buf) });
+
+    std.mem.copyForwards(u8, buf[len..], end_buff);
+    len += end_buff.len;
+
+    log.debug("buff len: {d} ult: {}", .{ len, std.zig.fmtEscapes(buf[0..len]) });
+
+    return len;
+}
+
+test "rewrites coin adddresses" {
+    // testing.log_level = .debug;
+    const allocator = testing.allocator;
+
+    const buf = try std.fmt.allocPrint(allocator, "Send the boguscoins to 7aaaaaaaaaaaaaaaaaaaaaaaabbbbb\n", .{});
+    defer allocator.free(buf);
+
+    const expected = "Send the boguscoins to 7YWHMfk9JZe0LM0g1ZauHuiSxhI\n";
+
+    const match: mvzr.Match = BOGUSCOIN_ADDR_REGEX.match(buf).?;
+    const end_of_new_buf = rewriteCoinAddress(buf, match);
+
+    try testing.expectEqualStrings(expected, buf[0..end_of_new_buf]);
+    try testing.expect(buf.len != end_of_new_buf);
+}
