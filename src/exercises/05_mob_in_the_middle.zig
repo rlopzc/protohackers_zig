@@ -118,25 +118,18 @@ const MobInTheMiddleRunner = struct {
 
 fn rewriteCoinAddress(buf: []u8, match: mvzr.Match) usize {
     var len = match.start;
-    log.debug("\nmatch: {}\n", .{match});
     const end_buff = buf[match.end..];
-
-    log.debug("end_buff len: {d} {}\n", .{ end_buff.len, std.zig.fmtEscapes(end_buff) });
 
     std.mem.copyForwards(u8, buf[len..][0..TONY_ADDR.len], TONY_ADDR);
     len += TONY_ADDR.len;
 
-    log.debug("buff len: {d} new: {}", .{ len, std.zig.fmtEscapes(buf) });
-
     std.mem.copyForwards(u8, buf[len..], end_buff);
     len += end_buff.len;
-
-    log.debug("buff len: {d} ult: {}", .{ len, std.zig.fmtEscapes(buf[0..len]) });
 
     return len;
 }
 
-test "rewrites coin adddresses" {
+test "rewrites coin address at the end" {
     // testing.log_level = .debug;
     const allocator = testing.allocator;
 
@@ -144,6 +137,22 @@ test "rewrites coin adddresses" {
     defer allocator.free(buf);
 
     const expected = "Send the boguscoins to 7YWHMfk9JZe0LM0g1ZauHuiSxhI\n";
+
+    const match: mvzr.Match = BOGUSCOIN_ADDR_REGEX.match(buf).?;
+    const end_of_new_buf = rewriteCoinAddress(buf, match);
+
+    try testing.expectEqualStrings(expected, buf[0..end_of_new_buf]);
+    try testing.expect(buf.len != end_of_new_buf);
+}
+
+test "rewrites coin address at the start" {
+    // testing.log_level = .debug;
+    const allocator = testing.allocator;
+
+    const buf = try std.fmt.allocPrint(allocator, "7aaaaaaaaaaaaaaaaaaaaaaaabbbbb is the address\n", .{});
+    defer allocator.free(buf);
+
+    const expected = "7YWHMfk9JZe0LM0g1ZauHuiSxhI is the address\n";
 
     const match: mvzr.Match = BOGUSCOIN_ADDR_REGEX.match(buf).?;
     const end_of_new_buf = rewriteCoinAddress(buf, match);
