@@ -8,8 +8,8 @@ const TcpClient = @import("../tcp_client.zig").TcpClient;
 const Client = @import("../client.zig").Client;
 const Runner = @import("../runner.zig").Runner;
 
-const UPSTREAM_SERVER = "localhost";
-const UPSTREAM_PORT = 3005;
+const UPSTREAM_SERVER = "chat.protohackers.com";
+const UPSTREAM_PORT = 16963;
 
 pub fn main() !void {
     var server = try TcpServer.start(3000);
