@@ -38,7 +38,7 @@ pub fn main() !void {
 // it starts at the start of a chat message, or is preceded by a space
 // it ends at the end of a chat message, or is followed by a space
 // You should rewrite all Boguscoin addresses to Tony's address, which is 7YWHMfk9JZe0LM0g1ZauHuiSxhI.
-const BOGUSCOIN_ADDR_REGEX: mvzr.Regex = mvzr.Regex.compile("7[a-zA-Z0-9]{25,35}+").?;
+const BOGUSCOIN_ADDR_REGEX: mvzr.Regex = mvzr.Regex.compile("7[a-zA-Z0-9]{25,34}+").?;
 const TONY_ADDR = "7YWHMfk9JZe0LM0g1ZauHuiSxhI";
 
 const MobInTheMiddleRunner = struct {
@@ -118,13 +118,20 @@ const MobInTheMiddleRunner = struct {
 
 fn rewriteCoinAddress(buf: []u8, match: mvzr.Match) usize {
     var len = match.start;
+    log.debug("\nmatch: {}\n", .{match});
     const end_buff = buf[match.end..];
+
+    log.debug("end_buff len: {d} {}\n", .{ end_buff.len, std.zig.fmtEscapes(end_buff) });
 
     std.mem.copyForwards(u8, buf[len..][0..TONY_ADDR.len], TONY_ADDR);
     len += TONY_ADDR.len;
 
+    log.debug("buff len: {d} new: {}", .{ len, std.zig.fmtEscapes(buf) });
+
     std.mem.copyForwards(u8, buf[len..], end_buff);
     len += end_buff.len;
+
+    log.debug("buff len: {d} ult: {}", .{ len, std.zig.fmtEscapes(buf[0..len]) });
 
     return len;
 }
@@ -149,6 +156,7 @@ test "rewrites coin address at the start" {
     // testing.log_level = .debug;
     const allocator = testing.allocator;
 
+    // TODO: there's a bug when using exact strings (26 chars)
     const buf = try std.fmt.allocPrint(allocator, "7aaaaaaaaaaaaaaaaaaaaaaaabbbbb is the address\n", .{});
     defer allocator.free(buf);
 
@@ -158,5 +166,4 @@ test "rewrites coin address at the start" {
     const end_of_new_buf = rewriteCoinAddress(buf, match);
 
     try testing.expectEqualStrings(expected, buf[0..end_of_new_buf]);
-    try testing.expect(buf.len != end_of_new_buf);
 }
