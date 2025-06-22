@@ -115,7 +115,7 @@ const MeansToAnEndRunner = struct {
                 }
 
                 var count: i32 = 0;
-                var total_price: i32 = 0;
+                var total_price: i64 = 0;
                 var iterator = prices.iterator();
                 while (iterator.next()) |kv| {
                     const key = kv.key_ptr.*;
@@ -130,7 +130,7 @@ const MeansToAnEndRunner = struct {
                     return;
                 }
 
-                const mean: i32 = @divTrunc(total_price, count);
+                const mean: i32 = @truncate(@divTrunc(total_price, count));
                 log.debug("count={d} total_price={d} mean={d}", .{ count, total_price, mean });
 
                 var buf: [4]u8 = undefined;
