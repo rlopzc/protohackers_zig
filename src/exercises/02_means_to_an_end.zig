@@ -53,7 +53,6 @@ const MeansToAnEndRunner = struct {
     // messages per connection. Messages are not delimited by newlines or any other
     // character: you'll know where one message ends and the next starts because
     // they are always 9 bytes.
-    // TODO: here is the bug? "Clients can send multiple messages per connection".
     fn delimiterFinder(unprocessed: []u8) ?usize {
         if (unprocessed.len < 9) {
             return null;
@@ -78,7 +77,7 @@ const MeansToAnEndRunner = struct {
         const first: i32 = mem.readInt(i32, msg[1..5], .big);
         const second: i32 = mem.readInt(i32, msg[5..9], .big);
 
-        std.debug.print("op={} first={d} second={d}\n", .{ op, first, second });
+        log.debug("op={} first={d} second={d}", .{ op, first, second });
 
         switch (op) {
             // 'I' in decimal
@@ -125,19 +124,19 @@ const MeansToAnEndRunner = struct {
                     }
                 }
                 if (count == 0) {
-                    try client.write(&mem.zeroes([4]u8));
-                    return Client.Error.CloseConn;
+                    log.debug("no prices found, sending 0s...", .{});
+                    return try client.write(&mem.zeroes([4]u8));
                 }
 
                 const mean: i32 = @divTrunc(total_price, count);
-                std.debug.print("count={d} total_price={d} mean={d}\n", .{ count, total_price, mean });
+                log.debug("count={d} total_price={d} mean={d}", .{ count, total_price, mean });
 
                 var buf: [4]u8 = undefined;
                 mem.writeInt(i32, &buf, mean, .big);
                 try client.write(&buf);
             },
             else => {
-                log.debug("unknown op={} closing conn", .{op});
+                log.debug("unknown op={} closing conn...", .{op});
                 return Client.Error.CloseConn;
             },
         }
