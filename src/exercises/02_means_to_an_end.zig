@@ -109,8 +109,9 @@ const MeansToAnEndRunner = struct {
                 // The server must compute the mean of the inserted prices with timestamps T, mintime <= T <= maxtime (i.e. timestamps in the closed interval [mintime, maxtime]). If the mean is not an integer, it is acceptable to round either up or down, at the server's discretion.
                 // The server must then send the mean to the client as a single int32.
                 if (first > second) {
+                    log.debug("mintime > maxtime, sending 0s...", .{});
                     try client.write(&mem.zeroes([4]u8));
-                    return Client.Error.CloseConn;
+                    return;
                 }
 
                 var count: i32 = 0;
@@ -125,7 +126,8 @@ const MeansToAnEndRunner = struct {
                 }
                 if (count == 0) {
                     log.debug("no prices found, sending 0s...", .{});
-                    return try client.write(&mem.zeroes([4]u8));
+                    try client.write(&mem.zeroes([4]u8));
+                    return;
                 }
 
                 const mean: i32 = @divTrunc(total_price, count);
