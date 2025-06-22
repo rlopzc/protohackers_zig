@@ -12,6 +12,7 @@ pub fn main() !void {
     defer server.deinit();
 
     var gpa = std.heap.GeneralPurposeAllocator(.{}){};
+    const allocator = gpa.allocator();
 
     while (true) {
         const client = server.accept() catch |err| {
@@ -19,7 +20,9 @@ pub fn main() !void {
             continue;
         };
 
-        var means_to_an_end = MeansToAnEndRunner.init(gpa.allocator());
+        const means_to_an_end = try allocator.create(MeansToAnEndRunner);
+        means_to_an_end.* = MeansToAnEndRunner.init(allocator);
+
         const thread = try std.Thread.spawn(.{}, Client.run, .{
             client,
             means_to_an_end.runner(),
@@ -40,13 +43,9 @@ const MeansToAnEndRunner = struct {
     }
 
     fn deinit(ptr: *anyopaque) void {
-        // The issue is when a client disconnects, this is deinitialized,
-        // which is wrong. We need to deinit when the thread has finished as
-        // cleanup
-        defer {
-            const self: *MeansToAnEndRunner = @ptrCast(@alignCast(ptr));
-            self.prices.deinit();
-        }
+        const self: *MeansToAnEndRunner = @ptrCast(@alignCast(ptr));
+        self.prices.deinit();
+        self.allocator.destroy(self);
     }
 
     // To keep bandwidth usage down, a simple binary format has been specified.
