@@ -1,5 +1,5 @@
 const std = @import("std");
-const log = std.log.scoped(.smoke_test);
+const log = std.log.scoped(.means_to_an_end);
 const net = std.net;
 const mem = std.mem;
 
