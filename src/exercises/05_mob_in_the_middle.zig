@@ -136,6 +136,33 @@ fn rewriteCoinAddress(buf: []u8, match: mvzr.Match) usize {
     return len;
 }
 
+test "ignores if there's no address" {
+    // testing.log_level = .debug;
+    const allocator = testing.allocator;
+
+    const buf = try std.fmt.allocPrint(allocator, "hello", .{});
+    defer allocator.free(buf);
+
+    const match: ?mvzr.Match = BOGUSCOIN_ADDR_REGEX.match(buf);
+    try testing.expectEqual(match, null);
+}
+
+test "ignores address if it's too long" {
+    // testing.log_level = .debug;
+    const allocator = testing.allocator;
+
+    const buf = try std.fmt.allocPrint(allocator, "Send the boguscoins to 7aaaaaaaaaaaaaaaaaaaaaaaabbbbbaaaaaaa\n", .{});
+    defer allocator.free(buf);
+
+    const expected = "Send the boguscoins to 7aaaaaaaaaaaaaaaaaaaaaaaabbbbbaaaaaaa\n";
+
+    const match: mvzr.Match = BOGUSCOIN_ADDR_REGEX.match(buf).?;
+    const end_of_new_buf = rewriteCoinAddress(buf, match);
+
+    try testing.expectEqualStrings(expected, buf[0..end_of_new_buf]);
+    try testing.expect(buf.len != end_of_new_buf);
+}
+
 test "rewrites coin address at the end" {
     // testing.log_level = .debug;
     const allocator = testing.allocator;
@@ -160,6 +187,21 @@ test "rewrites coin address at the start" {
     defer allocator.free(buf);
 
     const expected = "7YWHMfk9JZe0LM0g1ZauHuiSxhI is the address\n";
+
+    const match: mvzr.Match = BOGUSCOIN_ADDR_REGEX.match(buf).?;
+    const end_of_new_buf = rewriteCoinAddress(buf, match);
+
+    try testing.expectEqualStrings(expected, buf[0..end_of_new_buf]);
+}
+
+test "rewrites coin address in the middle" {
+    // testing.log_level = .debug;
+    const allocator = testing.allocator;
+
+    const buf = try std.fmt.allocPrint(allocator, "send 7aaaaaaaaaaaaaaaaaaaaaaaabbbbb to the address\n", .{});
+    defer allocator.free(buf);
+
+    const expected = "send 7YWHMfk9JZe0LM0g1ZauHuiSxhI to the address\n";
 
     const match: mvzr.Match = BOGUSCOIN_ADDR_REGEX.match(buf).?;
     const end_of_new_buf = rewriteCoinAddress(buf, match);
