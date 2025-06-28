@@ -156,7 +156,6 @@ test "rewrites coin address at the start" {
     // testing.log_level = .debug;
     const allocator = testing.allocator;
 
-    // TODO: there's a bug when using exact strings (26 chars)
     const buf = try std.fmt.allocPrint(allocator, "7aaaaaaaaaaaaaaaaaaaaaaaabbbbb is the address\n", .{});
     defer allocator.free(buf);
 
