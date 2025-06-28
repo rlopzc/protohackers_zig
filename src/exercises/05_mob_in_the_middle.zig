@@ -84,7 +84,7 @@ const MobInTheMiddleRunner = struct {
         var buf: [1024]u8 = undefined;
 
         while (true) {
-            var read_bytes = self.tcp_client.rcv(&buf) catch {
+            const read_bytes = self.tcp_client.rcv(&buf) catch {
                 log.warn("Upstream read error, closing loop", .{});
                 break;
             };
@@ -93,12 +93,9 @@ const MobInTheMiddleRunner = struct {
             log.debug("async rcv from upstream: {}", .{std.zig.fmtEscapes(buf[0..read_bytes])});
 
             // Rewrite coin address
-            if (BOGUSCOIN_ADDR_REGEX.match(buf[0..read_bytes])) |match| {
-                log.debug("changing address {s}", .{match.slice});
-                read_bytes = rewriteCoinAddress(buf[0..read_bytes], match);
-            }
+            const new_buf = rewriteCoinAddress(buf[0..read_bytes]);
 
-            _ = client.write(buf[0..read_bytes]) catch {
+            _ = client.write(new_buf) catch {
                 log.warn("Client write error", .{});
                 break;
             };
@@ -116,24 +113,29 @@ const MobInTheMiddleRunner = struct {
     }
 };
 
-fn rewriteCoinAddress(buf: []u8, match: mvzr.Match) usize {
-    var len = match.start;
-    log.debug("match: {}", .{match});
-    const end_buff = buf[match.end..];
+fn rewriteCoinAddress(buf: []u8) []u8 {
+    if (BOGUSCOIN_ADDR_REGEX.match(buf)) |match| {
+        log.debug("changing address {s}", .{match.slice});
+        var len = match.start;
+        log.debug("match: {}", .{match});
+        const end_buff = buf[match.end..];
 
-    log.debug("end_buff len: {d} {}", .{ end_buff.len, std.zig.fmtEscapes(end_buff) });
+        log.debug("end_buff len: {d} {}", .{ end_buff.len, std.zig.fmtEscapes(end_buff) });
 
-    std.mem.copyForwards(u8, buf[len..][0..TONY_ADDR.len], TONY_ADDR);
-    len += TONY_ADDR.len;
+        std.mem.copyForwards(u8, buf[len..][0..TONY_ADDR.len], TONY_ADDR);
+        len += TONY_ADDR.len;
 
-    log.debug("buff len: {d} new: {}", .{ len, std.zig.fmtEscapes(buf[0..len]) });
+        log.debug("buff len: {d} new: {}", .{ len, std.zig.fmtEscapes(buf[0..len]) });
 
-    std.mem.copyForwards(u8, buf[len..], end_buff);
-    len += end_buff.len;
+        std.mem.copyForwards(u8, buf[len..], end_buff);
+        len += end_buff.len;
 
-    log.debug("buff len: {d} ult: {}", .{ len, std.zig.fmtEscapes(buf[0..len]) });
+        log.debug("buff len: {d} ult: {}", .{ len, std.zig.fmtEscapes(buf[0..len]) });
 
-    return len;
+        return buf[0..len];
+    }
+
+    return buf;
 }
 
 test "ignores if there's no address" {
@@ -143,8 +145,11 @@ test "ignores if there's no address" {
     const buf = try std.fmt.allocPrint(allocator, "hello", .{});
     defer allocator.free(buf);
 
-    const match: ?mvzr.Match = BOGUSCOIN_ADDR_REGEX.match(buf);
-    try testing.expectEqual(match, null);
+    const expected = "hello";
+
+    const new_buf = rewriteCoinAddress(buf);
+
+    try testing.expectEqualStrings(expected, new_buf);
 }
 
 test "ignores address if it's too long" {
@@ -156,11 +161,10 @@ test "ignores address if it's too long" {
 
     const expected = "Send the boguscoins to 7aaaaaaaaaaaaaaaaaaaaaaaabbbbbaaaaaaa\n";
 
-    const match: mvzr.Match = BOGUSCOIN_ADDR_REGEX.match(buf).?;
-    const end_of_new_buf = rewriteCoinAddress(buf, match);
+    const new_buf = rewriteCoinAddress(buf);
 
-    try testing.expectEqualStrings(expected, buf[0..end_of_new_buf]);
-    try testing.expect(buf.len != end_of_new_buf);
+    try testing.expectEqualStrings(expected, new_buf);
+    try testing.expect(buf.len != new_buf.len);
 }
 
 test "rewrites coin address at the end" {
@@ -172,11 +176,10 @@ test "rewrites coin address at the end" {
 
     const expected = "Send the boguscoins to 7YWHMfk9JZe0LM0g1ZauHuiSxhI\n";
 
-    const match: mvzr.Match = BOGUSCOIN_ADDR_REGEX.match(buf).?;
-    const end_of_new_buf = rewriteCoinAddress(buf, match);
+    const new_buf = rewriteCoinAddress(buf);
 
-    try testing.expectEqualStrings(expected, buf[0..end_of_new_buf]);
-    try testing.expect(buf.len != end_of_new_buf);
+    try testing.expectEqualStrings(expected, new_buf);
+    try testing.expect(buf.len != new_buf.len);
 }
 
 test "rewrites coin address at the start" {
@@ -188,10 +191,9 @@ test "rewrites coin address at the start" {
 
     const expected = "7YWHMfk9JZe0LM0g1ZauHuiSxhI is the address\n";
 
-    const match: mvzr.Match = BOGUSCOIN_ADDR_REGEX.match(buf).?;
-    const end_of_new_buf = rewriteCoinAddress(buf, match);
+    const new_buf = rewriteCoinAddress(buf);
 
-    try testing.expectEqualStrings(expected, buf[0..end_of_new_buf]);
+    try testing.expectEqualStrings(expected, new_buf);
 }
 
 test "rewrites coin address in the middle" {
@@ -203,8 +205,7 @@ test "rewrites coin address in the middle" {
 
     const expected = "send 7YWHMfk9JZe0LM0g1ZauHuiSxhI to the address\n";
 
-    const match: mvzr.Match = BOGUSCOIN_ADDR_REGEX.match(buf).?;
-    const end_of_new_buf = rewriteCoinAddress(buf, match);
+    const new_buf = rewriteCoinAddress(buf);
 
-    try testing.expectEqualStrings(expected, buf[0..end_of_new_buf]);
+    try testing.expectEqualStrings(expected, new_buf);
 }
