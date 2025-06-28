@@ -118,15 +118,15 @@ const MobInTheMiddleRunner = struct {
 
 fn rewriteCoinAddress(buf: []u8, match: mvzr.Match) usize {
     var len = match.start;
-    log.debug("\nmatch: {}\n", .{match});
+    log.debug("match: {}", .{match});
     const end_buff = buf[match.end..];
 
-    log.debug("end_buff len: {d} {}\n", .{ end_buff.len, std.zig.fmtEscapes(end_buff) });
+    log.debug("end_buff len: {d} {}", .{ end_buff.len, std.zig.fmtEscapes(end_buff) });
 
     std.mem.copyForwards(u8, buf[len..][0..TONY_ADDR.len], TONY_ADDR);
     len += TONY_ADDR.len;
 
-    log.debug("buff len: {d} new: {}", .{ len, std.zig.fmtEscapes(buf) });
+    log.debug("buff len: {d} new: {}", .{ len, std.zig.fmtEscapes(buf[0..len]) });
 
     std.mem.copyForwards(u8, buf[len..], end_buff);
     len += end_buff.len;
