@@ -38,7 +38,8 @@ pub fn main() !void {
 // it starts at the start of a chat message, or is preceded by a space
 // it ends at the end of a chat message, or is followed by a space
 // You should rewrite all Boguscoin addresses to Tony's address, which is 7YWHMfk9JZe0LM0g1ZauHuiSxhI.
-const BOGUSCOIN_ADDR_REGEX: mvzr.Regex = mvzr.Regex.compile("7[a-zA-Z0-9]{25,34}+").?;
+// TODO: mvzr doesn't support lokeahead yet
+const BOGUSCOIN_ADDR_REGEX: mvzr.Regex = mvzr.Regex.compile("(^|\\s)(7[a-zA-Z0-9]{25,34}+)($|\\s)").?;
 const TONY_ADDR = "7YWHMfk9JZe0LM0g1ZauHuiSxhI";
 
 const MobInTheMiddleRunner = struct {
@@ -139,7 +140,6 @@ fn rewriteCoinAddress(buf: []u8) []u8 {
 }
 
 test "ignores if there's no address" {
-    // testing.log_level = .debug;
     const allocator = testing.allocator;
 
     const buf = try std.fmt.allocPrint(allocator, "hello", .{});
