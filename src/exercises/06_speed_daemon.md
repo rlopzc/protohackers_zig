@@ -22,13 +22,19 @@ except that they are unsigned. Ticket dispatchers
 Each ticket dispatcher is responsible for some number of roads. When the server finds that a car was detected at 2
 points on the same road with an average speed in excess of the speed limit (speed = distance / time), it will find the
 responsible ticket dispatcher and send it a ticket for the offending car, so that the ticket dispatcher can perform the
-necessary legal rituals. Roads
+necessary legal rituals.
+
+Roads
 
 Each road in the network is identified by a number from 0 to 65535. A single road has the same speed limit at every
 point on the road. Positions on the roads are identified by the number of miles from the start of the road. Remarkably,
-all speed cameras are positioned at exact integer numbers of miles from the start of the road. Cars
+all speed cameras are positioned at exact integer numbers of miles from the start of the road.
 
-Each car has a specific number plate represented as an uppercase alphanumeric string. Data types
+Cars
+
+Each car has a specific number plate represented as an uppercase alphanumeric string.
+
+Data types
 
 The protocol uses a binary data format, with the following primitive types: u8, u16, u32
 
@@ -55,8 +61,10 @@ A string of characters in a length-prefixed format. A str is transmitted as a si
 
 Examples:
 
-Type | Hex data                   | Value ---------------------------------------------- str  | 00 | "" str  | 03 66 6f
-6f                | "foo" str  | 08 45 6C 62 65 72 65 74 68 | "Elbereth"
+Type | Hex data                   | Value ----------------------------------------------
+str  | 00                         | ""
+str  | 03 66 6f 6f                | "foo"
+str  | 08 45 6C 62 65 72 65 74 68 | "Elbereth"
 
 Message types
 
@@ -72,26 +80,37 @@ In the examples shown below, the hexadecimal data is broken across several lines
 the real protocol there is no such distinction.
 
 It is an error for a client to send the server a message with any message type value that is not listed below with
-"Client->Server". 0x10: Error (Server->Client)
+"Client->Server".
+
+## 0x10: Error (Server->Client)
 
 Fields:
-
-msg: str
+- msg: str
 
 When the client does something that this protocol specification declares "an error", the server must send the client an
 appropriate Error message and immediately disconnect that client.
 
 Examples:
+```
+Hexadecimal:
+Decoded: 10
+Error{
+  03 62 61 64
+  msg: "bad"
+}
+-----
+10
+Error{
+  0b 69 6c 6c 65 67 61 6c 20 6d 73 67
+  msg: "illegal msg"
+}
+```
 
-Hexadecimal:                            Decoded: 10                                      Error{ 03 62 61 64 msg: "bad" }
-
-10                                      Error{ 0b 69 6c 6c 65 67 61 6c 20 6d 73 67         msg: "illegal msg" }
-
-0x20: Plate (Client->Server)
+## 0x20: Plate (Client->Server)
 
 Fields:
-
-plate: str timestamp: u32
+- plate: str
+- timestamp: u32
 
 This client has observed the given number plate at its location, at the given timestamp. Cameras can send observations
 in any order they like, and after any delay they like, so you won't necessarily receive observations in the order that
@@ -103,16 +122,35 @@ It is an error for a client that has not identified itself as a camera (see IAmC
 
 Examples:
 
-Hexadecimal:                Decoded: 20                          Plate{ 04 55 4e 31 58                  plate: "UN1X",
-00 00 03 e8                     timestamp: 1000 }
+```
+Hexadecimal:
+Decoded: 20
+Plate{
+  04 55 4e 31 58
+  plate: "UN1X",
+  00 00 03 e8
+  timestamp: 1000
+}
+-----
+20
+Plate{
+  07 52 45 30 35 42 4b 47
+  plate: "RE05BKG",
+  00 01 e2 40
+  timestamp: 123456
+}
+```
 
-20                          Plate{ 07 52 45 30 35 42 4b 47         plate: "RE05BKG", 00 01 e2 40 timestamp: 123456 }
-
-0x21: Ticket (Server->Client)
+## 0x21: Ticket (Server->Client)
 
 Fields:
-
-plate: str road: u16 mile1: u16 timestamp1: u32 mile2: u16 timestamp2: u32 speed: u16 (100x miles per hour)
+- plate: str
+- road: u16
+- mile1: u16
+- timestamp1: u32
+- mile2: u16
+- timestamp2: u32
+- speed: u16 (100x miles per hour)
 
 When the server detects that a car's average speed exceeded the speed limit between 2 observations, it generates a
 Ticket message detailing the number plate of the car (plate), the road number of the cameras (road), the positions of
@@ -125,20 +163,49 @@ must refer to the later of the 2 observations (the larger timestamp).
 The server sends the ticket to a dispatcher for the corresponding road.
 
 Examples:
+```
+Hexadecimal:
+Decoded: 21
+Ticket{
+  04 55 4e 31 58
+  plate: "UN1X",
+  00 42
+  road: 66,
+  00 64
+  mile1: 100,
+  00 01 e2 40
+  timestamp1: 123456,
+  00 6e
+  mile2: 110,
+  00 01 e3 a8
+  timestamp2: 123816,
+  27 10
+  speed: 10000
+}
+-----
+21
+Ticket{
+  07 52 45 30 35 42 4b 47
+  plate: "RE05BKG",
+  01 70
+  road: 368,
+  04 d2
+  mile1: 1234,
+  00 0f 42 40
+  timestamp1: 1000000,
+  04 d3
+  mile2: 1235,
+  00 0f 42 7c
+  timestamp2: 1000060,
+  17 70
+  speed: 6000
+}
+```
 
-Hexadecimal:            Decoded: 21                      Ticket{ 04 55 4e 31 58              plate: "UN1X", 00 42 road:
-66, 00 64                       mile1: 100, 00 01 e2 40                 timestamp1: 123456, 00 6e mile2: 110, 00 01 e3
-a8                 timestamp2: 123816, 27 10                       speed: 10000, }
-
-21                      Ticket{ 07 52 45 30 35 42 4b 47     plate: "RE05BKG", 01 70                       road: 368, 04
-d2                       mile1: 1234, 00 0f 42 40                 timestamp1: 1000000, 04 d3 mile2: 1235, 00 0f 42 7c
-timestamp2: 1000060, 17 70                       speed: 6000, }
-
-0x40: WantHeartbeat (Client->Server)
+## 0x40: WantHeartbeat (Client->Server)
 
 Fields:
-
-interval: u32 (deciseconds)
+- interval: u32 (deciseconds)
 
 Request heartbeats.
 
@@ -152,26 +219,40 @@ An interval of 0 deciseconds means the client does not want to receive heartbeat
 It is an error for a client to send multiple WantHeartbeat messages on a single connection.
 
 Examples:
+```
+Hexadecimal:
+Decoded: 40
+WantHeartbeat{
+  00 00 00 0a
+  interval: 10
+}
+-----
+40
+WantHeartbeat{
+  00 00 04 db
+  interval: 1243
+}
+```
 
-Hexadecimal:    Decoded: 40              WantHeartbeat{ 00 00 00 0a         interval: 10 }
-
-40              WantHeartbeat{ 00 00 04 db         interval: 1243 }
-
-0x41: Heartbeat (Server->Client)
+## 0x41: Heartbeat (Server->Client)
 
 No fields.
 
 Sent to a client at the interval requested by the client.
 
 Example:
+```
+Hexadecimal:
+Decoded: 41
+Heartbeat{}
+```
 
-Hexadecimal:    Decoded: 41              Heartbeat{}
-
-0x80: IAmCamera (Client->Server)
+## 0x80: IAmCamera (Client->Server)
 
 Fields:
-
-road: u16 mile: u16 limit: u16 (miles per hour)
+- road: u16
+- mile: u16
+- limit: u16 (miles per hour)
 
 This client is a camera. The road field contains the road number that the camera is on, mile contains the position of
 the camera, relative to the start of the road, and limit contains the speed limit of the road, in miles per hour.
@@ -180,18 +261,34 @@ It is an error for a client that has already identified itself as either a camer
 IAmCamera message.
 
 Examples:
-
-Hexadecimal:    Decoded: 80              IAmCamera{ 00 42               road: 66, 00 64               mile: 100, 00 3c
-limit: 60, }
-
-80              IAmCamera{ 01 70               road: 368, 04 d2               mile: 1234, 00 28               limit: 40,
+```
+Hexadecimal:
+Decoded: 80
+IAmCamera{
+  00 42
+  road: 66,
+  00 64
+  mile: 100,
+  00 3c
+  limit: 60
 }
+-----
+80
+IAmCamera{
+  01 70
+  road: 368,
+  04 d2
+  mile: 1234,
+  00 28
+  limit: 40
+}
+```
 
-0x81: IAmDispatcher (Client->Server)
+## 0x81: IAmDispatcher (Client->Server)
 
 Fields:
-
-numroads: u8 roads: [u16] (array of u16)
+- numroads: u8
+- roads: [u16] (array of u16)
 
 This client is a ticket dispatcher. The numroads field says how many roads this dispatcher is responsible for, and the
 roads field contains the road numbers.
@@ -200,12 +297,25 @@ It is an error for a client that has already identified itself as either a camer
 IAmDispatcher message.
 
 Examples:
+```
+Hexadecimal:
+Decoded: 81
+IAmDispatcher{
+    01
+    numroads: 1,
+    00 42
+    roads: [ 66 ]
+}
+-----
+81
+IAmDispatcher{
+    03
+    numroads: 3,
+    00 42 01 70 13 88
+    roads: [ 66, 368, 5000 ]
+}
 
-Hexadecimal:    Decoded: 81              IAmDispatcher{ 01                  roads: [ 00 42                   66 ] }
-
-81              IAmDispatcher{ 03                  roads: [ 00 42                   66, 01 70                   368, 13
-88                   5000 ] }
-
+```
 Example session
 
 In this example session, 3 clients connect to the server. Clients 1 & 2 are cameras on road 123, with a 60 mph speed
