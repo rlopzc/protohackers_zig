@@ -43,3 +43,16 @@ docker buildx build --platform linux/arm64,linux/amd64 -t ghcr.io/rlopzc/protoha
    docker run --rm --name protohackers_zig -p 3000:3000 --init ghcr.io/rlopzc/protohackers_zig:latest 00
    ```
 1. Run the protohacker test using their website!
+
+## Upgrading Zig
+
+```
+# Zig version
+mise install zig@version
+mise use --global zig@version
+
+# Build zls
+git checkout {tag}
+zig build -Doptimize=ReleaseSafe
+ln -sf ~/packages/zls/zig-out/bin/zls ~/.local/bin/zls
+```
