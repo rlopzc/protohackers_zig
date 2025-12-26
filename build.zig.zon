@@ -38,8 +38,8 @@
     // internet connectivity.
     .dependencies = .{
         .mvzr = .{
-            .url = "https://github.com/mnemnion/mvzr/archive/refs/tags/v0.3.6.tar.gz",
-            .hash = "mvzr-0.3.6-ZSOkyydtAQAtoDUtd5fSQ4knwGhF-CxlOuC6-ZGQSHKu",
+            .url = "https://github.com/mnemnion/mvzr/archive/refs/tags/v0.3.7.tar.gz",
+            .hash = "mvzr-0.3.7-ZSOky5FtAQB2VrFQPNbXHQCFJxWTMAYEK7ljYEaMR6jt",
         },
     },
     .paths = .{
