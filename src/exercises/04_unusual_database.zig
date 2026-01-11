@@ -2,8 +2,9 @@ const std = @import("std");
 const log = std.log.scoped(.unusual_database);
 const posix = std.posix;
 
-const UdpServer = @import("../udp_server.zig").UdpServer;
-const Client = @import("../client.zig").Client;
+const UdpServer = @import("protohackers_zig").UdpServer;
+const Client = @import("protohackers_zig").Client;
+
 const version: []const u8 = "version=Ken's Key-Value Store 1.0";
 
 pub fn main() !void {

@@ -2,9 +2,9 @@ const std = @import("std");
 const log = std.log.scoped(.smoke_test);
 const net = std.net;
 
-const TcpServer = @import("../tcp_server.zig").TcpServer;
-const Client = @import("../client.zig").Client;
-const Runner = @import("../runner.zig").Runner;
+const TcpServer = @import("protohackers_zig").TcpServer;
+const Client = @import("protohackers_zig").Client;
+const Runner = @import("protohackers_zig").Runner;
 
 pub fn main() !void {
     var server = TcpServer.start(3000) catch std.process.exit(1);
