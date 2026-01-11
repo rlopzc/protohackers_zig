@@ -38,9 +38,6 @@ pub fn main() !void {
 // it starts at the start of a chat message, or is preceded by a space
 // it ends at the end of a chat message, or is followed by a space
 // You should rewrite all Boguscoin addresses to Tony's address, which is 7YWHMfk9JZe0LM0g1ZauHuiSxhI.
-// TODO: mvzr doesn't support lokeahead yet
-const BOGUSCOIN_ADDR_REGEX: mvzr.Regex = mvzr.Regex.compile("(^|\\s)(7[a-zA-Z0-9]{25,34}+)($|\\s)").?;
-const TONY_ADDR = "7YWHMfk9JZe0LM0g1ZauHuiSxhI";
 
 const MobInTheMiddleRunner = struct {
     allocator: std.mem.Allocator,
@@ -94,7 +91,8 @@ const MobInTheMiddleRunner = struct {
             log.debug("async rcv from upstream: {f}", .{std.zig.fmtString(buf[0..read_bytes])});
 
             // Rewrite coin address
-            const new_buf = rewriteCoinAddress(buf[0..read_bytes]);
+            const new_buf = try rewriteCoinAddress(self.allocator, buf[0..read_bytes]);
+            defer self.allocator.free(new_buf);
 
             _ = client.write(new_buf) catch {
                 log.warn("Client write error", .{});
@@ -114,46 +112,65 @@ const MobInTheMiddleRunner = struct {
     }
 };
 
-fn rewriteCoinAddress(buf: []u8) []u8 {
-    if (BOGUSCOIN_ADDR_REGEX.match(buf)) |match| {
-        log.debug("changing address {s}", .{match.slice});
-        var len = match.start;
-        log.debug("match: {f}", .{match});
-        const end_buff = buf[match.end..];
+const TONY_ADDR = "7YWHMfk9JZe0LM0g1ZauHuiSxhI";
+fn rewriteCoinAddress(allocator: std.mem.Allocator, input: []const u8) ![]u8 {
+    var list = std.ArrayListUnmanaged(u8){};
+    errdefer list.deinit(allocator);
 
-        log.debug("end_buff len: {d} {f}", .{ end_buff.len, std.zig.fmtString(end_buff) });
+    // We use the max range 35 (1 + 34).
+    const regex = mvzr.Regex.compile("7[a-zA-Z0-9]{25,34}").?;
+    var iter = regex.iterator(input);
+    var last_index: usize = 0;
 
-        std.mem.copyForwards(u8, buf[len..][0..TONY_ADDR.len], TONY_ADDR);
-        len += TONY_ADDR.len;
+    while (iter.next()) |match| {
+        // 1. Boundary Check: Start
+        const preceded_by_space = (match.start == 0 or input[match.start - 1] == ' ');
 
-        log.debug("buff len: {d} new: {f}", .{ len, std.zig.fmtString(buf[0..len]) });
+        // 2. Boundary Check: End
+        // We must ensure the character AFTER the match is NOT alphanumeric.
+        // If it IS alphanumeric, then the address is actually longer than 35 chars,
+        // which means this match is just a prefix and should be ignored.
+        const followed_by_boundary = if (match.end == input.len)
+            true
+        else if (input[match.end] == ' ' or input[match.end] == '\n' or input[match.end] == '\r')
+            true
+        else
+            false;
 
-        std.mem.copyForwards(u8, buf[len..], end_buff);
-        len += end_buff.len;
+        // 3. Greedy Check:
+        // Did we match the WHOLE alphanumeric block?
+        // If the regex matched 26 chars but the 27th is 'b', mvzr might have stopped early.
+        // We only accept if the NEXT character in the input isn't a valid address char.
+        const is_greedy_match = if (match.end < input.len) !std.ascii.isAlphanumeric(input[match.end]) else true;
 
-        log.debug("buff len: {d} ult: {f}", .{ len, std.zig.fmtString(buf[0..len]) });
-
-        return buf[0..len];
+        if (preceded_by_space and followed_by_boundary and is_greedy_match) {
+            try list.appendSlice(allocator, input[last_index..match.start]);
+            try list.appendSlice(allocator, TONY_ADDR);
+            last_index = match.end;
+        }
     }
 
-    return buf;
+    try list.appendSlice(allocator, input[last_index..]);
+    return list.toOwnedSlice(allocator);
 }
 
 test "ignores if there's no address" {
+    testing.log_level = .debug;
     const allocator = testing.allocator;
 
-    const buf = try std.fmt.allocPrint(allocator, "hello", .{});
+    const buf = try std.fmt.allocPrint(allocator, "hello\n", .{});
     defer allocator.free(buf);
 
-    const expected = "hello";
+    const expected = "hello\n";
 
-    const new_buf = rewriteCoinAddress(buf);
+    const new_buf = try rewriteCoinAddress(allocator, buf);
+    defer allocator.free(new_buf);
 
     try testing.expectEqualStrings(expected, new_buf);
 }
 
 test "ignores address if it's too long" {
-    // testing.log_level = .debug;
+    testing.log_level = .debug;
     const allocator = testing.allocator;
 
     const buf = try std.fmt.allocPrint(allocator, "Send the boguscoins to 7aaaaaaaaaaaaaaaaaaaaaaaabbbbbaaaaaaa\n", .{});
@@ -161,14 +178,15 @@ test "ignores address if it's too long" {
 
     const expected = "Send the boguscoins to 7aaaaaaaaaaaaaaaaaaaaaaaabbbbbaaaaaaa\n";
 
-    const new_buf = rewriteCoinAddress(buf);
+    const new_buf = try rewriteCoinAddress(allocator, buf);
+    defer allocator.free(new_buf);
 
     try testing.expectEqualStrings(expected, new_buf);
     try testing.expect(buf.len != new_buf.len);
 }
 
 test "rewrites coin address at the end" {
-    // testing.log_level = .debug;
+    testing.log_level = .debug;
     const allocator = testing.allocator;
 
     const buf = try std.fmt.allocPrint(allocator, "Send the boguscoins to 7aaaaaaaaaaaaaaaaaaaaaaaabbbbb\n", .{});
@@ -176,14 +194,15 @@ test "rewrites coin address at the end" {
 
     const expected = "Send the boguscoins to 7YWHMfk9JZe0LM0g1ZauHuiSxhI\n";
 
-    const new_buf = rewriteCoinAddress(buf);
+    const new_buf = try rewriteCoinAddress(allocator, buf);
+    defer allocator.free(new_buf);
 
     try testing.expectEqualStrings(expected, new_buf);
-    try testing.expect(buf.len != new_buf.len);
+    try testing.expectEqual(buf.len, new_buf.len);
 }
 
 test "rewrites coin address at the start" {
-    // testing.log_level = .debug;
+    testing.log_level = .debug;
     const allocator = testing.allocator;
 
     const buf = try std.fmt.allocPrint(allocator, "7aaaaaaaaaaaaaaaaaaaaaaaabbbbb is the address\n", .{});
@@ -191,13 +210,14 @@ test "rewrites coin address at the start" {
 
     const expected = "7YWHMfk9JZe0LM0g1ZauHuiSxhI is the address\n";
 
-    const new_buf = rewriteCoinAddress(buf);
+    const new_buf = try rewriteCoinAddress(allocator, buf);
+    defer allocator.free(new_buf);
 
     try testing.expectEqualStrings(expected, new_buf);
 }
 
 test "rewrites coin address in the middle" {
-    // testing.log_level = .debug;
+    testing.log_level = .debug;
     const allocator = testing.allocator;
 
     const buf = try std.fmt.allocPrint(allocator, "send 7aaaaaaaaaaaaaaaaaaaaaaaabbbbb to the address\n", .{});
@@ -205,7 +225,8 @@ test "rewrites coin address in the middle" {
 
     const expected = "send 7YWHMfk9JZe0LM0g1ZauHuiSxhI to the address\n";
 
-    const new_buf = rewriteCoinAddress(buf);
+    const new_buf = try rewriteCoinAddress(allocator, buf);
+    defer allocator.free(new_buf);
 
     try testing.expectEqualStrings(expected, new_buf);
 }
