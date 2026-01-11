@@ -22,7 +22,7 @@ pub const Client = struct {
 
     pub fn write(self: Self, msg: []const u8) !void {
         // TODO: use buffered writer
-        log.info("client={} sending={}", .{ self.conn.address, std.zig.fmtEscapes(msg) });
+        log.info("client={f} sending={f}", .{ self.conn.address, std.zig.fmtString(msg) });
         _ = try self.conn.stream.writeAll(msg);
     }
 
@@ -31,10 +31,12 @@ pub const Client = struct {
     }
 
     pub fn run(self: Self, runner: Runner) !void {
-        log.info("client {} connected", .{self.conn.address});
+        log.info("client {f} connected", .{self.conn.address});
         defer self.deinit();
 
         try runner.onConnect(&self);
+
+        // New reader
 
         var buf: [4096]u8 = undefined;
         var reader = Reader{
@@ -46,12 +48,12 @@ pub const Client = struct {
 
         while (true) {
             const msg = reader.readMessage() catch break;
-            log.info("client={} received={}", .{ self.conn.address, std.zig.fmtEscapes(msg) });
+            log.info("client={f} received={f}", .{ self.conn.address, std.zig.fmtString(msg) });
             runner.callback(msg, &self) catch break;
         }
 
         try runner.onDisconnect(&self);
 
-        log.info("client {} disconnected", .{self.conn.address});
+        log.info("client {f} disconnected", .{self.conn.address});
     }
 };

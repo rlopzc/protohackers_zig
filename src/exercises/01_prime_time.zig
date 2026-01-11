@@ -53,12 +53,13 @@ const PrimeTimeRunner = struct {
             .prime = prime,
         };
 
-        var buf = std.ArrayList(u8).init(gpa.allocator());
-        defer buf.deinit();
+        var buf = std.ArrayListUnmanaged(u8){};
+        defer buf.deinit(gpa.allocator());
 
         // https://www.openmymind.net/Writing-Json-To-A-Custom-Output-in-Zig/
-        try json.stringify(response, .{}, buf.writer());
-        try buf.append('\n');
+        var writer = buf.writer(gpa.allocator()).adaptToNewApi(&.{}).new_interface;
+        try json.Stringify.value(response, .{}, &writer);
+        try buf.append(gpa.allocator(), '\n');
         try client.write(buf.items);
     }
 
@@ -132,10 +133,10 @@ fn parseRequest(msg: []const u8) !Request {
         },
         .number_string => {
             log.info("got number_string number {s}", .{number.?.number_string});
-            var big = try std.math.big.int.Managed.init(allocator);
-            defer big.deinit();
-            try big.setString(10, number.?.number_string);
-            request.number = try big.to(BigNumber);
+            var bigint = try std.math.big.int.Managed.init(allocator);
+            defer bigint.deinit();
+            try bigint.setString(10, number.?.number_string);
+            request.number = try bigint.toInt(BigNumber);
         },
         else => {
             log.info("got number as {?any}", .{number});

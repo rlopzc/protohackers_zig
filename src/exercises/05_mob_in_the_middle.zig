@@ -3,10 +3,10 @@ const log = std.log.scoped(.mob_in_the_middle);
 const mvzr = @import("mvzr");
 const testing = std.testing;
 
-const TcpServer = @import("../tcp_server.zig").TcpServer;
-const TcpClient = @import("../tcp_client.zig").TcpClient;
-const Client = @import("../client.zig").Client;
-const Runner = @import("../runner.zig").Runner;
+const TcpServer = @import("protohackers_zig").TcpServer;
+const TcpClient = @import("protohackers_zig").TcpClient;
+const Client = @import("protohackers_zig").Client;
+const Runner = @import("protohackers_zig").Runner;
 
 const UPSTREAM_SERVER = "chat.protohackers.com";
 const UPSTREAM_PORT = 16963;
@@ -91,7 +91,7 @@ const MobInTheMiddleRunner = struct {
             };
             if (read_bytes == 0) break; // connection closed
 
-            log.debug("async rcv from upstream: {}", .{std.zig.fmtEscapes(buf[0..read_bytes])});
+            log.debug("async rcv from upstream: {f}", .{std.zig.fmtString(buf[0..read_bytes])});
 
             // Rewrite coin address
             const new_buf = rewriteCoinAddress(buf[0..read_bytes]);
@@ -118,20 +118,20 @@ fn rewriteCoinAddress(buf: []u8) []u8 {
     if (BOGUSCOIN_ADDR_REGEX.match(buf)) |match| {
         log.debug("changing address {s}", .{match.slice});
         var len = match.start;
-        log.debug("match: {}", .{match});
+        log.debug("match: {f}", .{match});
         const end_buff = buf[match.end..];
 
-        log.debug("end_buff len: {d} {}", .{ end_buff.len, std.zig.fmtEscapes(end_buff) });
+        log.debug("end_buff len: {d} {f}", .{ end_buff.len, std.zig.fmtString(end_buff) });
 
         std.mem.copyForwards(u8, buf[len..][0..TONY_ADDR.len], TONY_ADDR);
         len += TONY_ADDR.len;
 
-        log.debug("buff len: {d} new: {}", .{ len, std.zig.fmtEscapes(buf[0..len]) });
+        log.debug("buff len: {d} new: {f}", .{ len, std.zig.fmtString(buf[0..len]) });
 
         std.mem.copyForwards(u8, buf[len..], end_buff);
         len += end_buff.len;
 
-        log.debug("buff len: {d} ult: {}", .{ len, std.zig.fmtEscapes(buf[0..len]) });
+        log.debug("buff len: {d} ult: {f}", .{ len, std.zig.fmtString(buf[0..len]) });
 
         return buf[0..len];
     }
