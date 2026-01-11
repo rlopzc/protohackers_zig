@@ -12,15 +12,9 @@ pub fn build(b: *std.Build) void {
     // set a preferred release mode, allowing the user to decide how to optimize.
     const optimize = b.standardOptimizeOption(.{});
 
-    // We will also create a module for our other entry point, 'main.zig'.
-    const exe_mod = b.createModule(.{
-        // `root_source_file` is the Zig "entry point" of the module. If a module
-        // only contains e.g. external object files, you can make this `null`.
-        // In this case the main source file is merely a path, however, in more
-        // complicated build scripts, this could be a generated file.
-        .root_source_file = b.path("src/main.zig"),
+    const mod = b.addModule("protohackers_zig", .{
+        .root_source_file = b.path("src/root.zig"),
         .target = target,
-        .optimize = optimize,
     });
 
     // mvzr regex dependency
@@ -28,13 +22,25 @@ pub fn build(b: *std.Build) void {
         .target = target,
         .optimize = optimize,
     });
-    exe_mod.addImport("mvzr", mvzr.module("mvzr"));
 
+    // We will also create a module for our other entry point, 'main.zig'.
     // This creates another `std.Build.Step.Compile`, but this one builds an executable
     // rather than a static library.
     const exe = b.addExecutable(.{
         .name = "protohackers_zig",
-        .root_module = exe_mod,
+        .root_module = b.createModule(.{
+            // `root_source_file` is the Zig "entry point" of the module. If a module
+            // only contains e.g. external object files, you can make this `null`.
+            // In this case the main source file is merely a path, however, in more
+            // complicated build scripts, this could be a generated file.
+            .root_source_file = b.path("src/main.zig"),
+            .target = target,
+            .optimize = optimize,
+            .imports = &.{
+                .{ .name = "protohackers_zig", .module = mod },
+                .{ .name = "mvzr", .module = mvzr.module("mvzr") },
+            },
+        }),
     });
 
     // This declares intent for the executable to be installed into the
@@ -69,6 +75,9 @@ pub fn build(b: *std.Build) void {
         .root_source_file = b.path("src/exercises/05_mob_in_the_middle.zig"),
         .target = target,
         .optimize = optimize,
+        .imports = &.{
+            .{ .name = "protohackers_zig", .module = mod },
+        },
     });
     mob_mod.addImport("mvzr", mvzr.module("mvzr"));
 
